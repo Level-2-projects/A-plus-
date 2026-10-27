@@ -1,1 +1,95 @@
+@startuml
+left to right direction
 
+actor Super Admin as SA
+actor Department Admin as Dep_A
+actor Doctor as Dr
+actor Student as Stu
+actor n8n Automation as AI
+
+rectangle "A Plus Academy" {
+
+package " Administration " {
+
+usecase "	Manage Departments " as SA1
+usecase " Manage Users " as SA2
+usecase " Assign Department Admins " as SA3
+
+}
+
+package " CO-Admin " {
+
+usecase " Manage Department " as Dep_A1
+usecase " Manage Students " as Dep_A2
+usecase " Manage Doctors " as Dep_A3
+usecase " Review Market Content " as Dep_A4
+usecase " View Monthly Ranking " as Dep_A5
+
+}
+
+package " Academic Activities " {
+
+usecase " Manage Course Materials " as Dr1
+usecase " Create Quiz " as Dr2
+usecase " Create Assignment " as Dr3
+usecase " Record Attendance " as Dr4
+usecase " Grade Submissions " as Dr5
+usecase " Publish Market Content " as Dr6
+
+}
+
+package " Receiver " {
+
+usecase " View Courses " as Stu1
+usecase " Access Lectures " as Stu2
+usecase " Solve Quiz " as Stu3
+usecase " Submit Assignment " as Stu4
+usecase " View Attendance " as Stu5
+usecase " View Grades " as Stu6
+usecase " View Dashboard " as Stu7
+usecase " View Market " as Stu8
+
+}
+
+package " Assistant " {
+
+usecase " Send Absence Warning " as AI1
+usecase " Send Deadline Reminder " as AI2
+usecase " Send Weekly Summary " as AI3
+usecase " AI Feedback " as AI4
+
+}
+
+
+SA ..> SA1 : <<include>>
+SA ..> SA2 : <<include>>
+SA ..> SA3 : <<include>>
+
+Dep_A ..> Dep_A1 : <<include>>
+Dep_A ..> Dep_A2 : <<include>>
+Dep_A ..> Dep_A3 : <<include>>
+Dep_A ..> Dep_A4 : <<include>>
+Dep_A ..> Dep_A5 : <<include>>
+
+Dr ..> Dr1 : <<include>>
+Dr ..> Dr2 : <<include>>
+Dr ..> Dr3 : <<include>>
+Dr ..> Dr4 : <<include>>
+Dr ..> Dr5 : <<include>>
+Dr ..> Dr6 : <<include>>
+
+Stu ..> Stu1 : <<include>>
+Stu ..> Stu2 : <<include>>
+Stu ..> Stu3 : <<include>>
+Stu ..> Stu4 : <<include>>
+Stu ..> Stu5 : <<include>>
+Stu ..> Stu6 : <<include>>
+Stu ..> Stu7 : <<include>>
+Stu ..> Stu8 : <<include>>
+
+AI ..> AI1 : <<include>>
+AI ..> AI2 : <<include>>
+AI ..> AI3 : <<include>>
+
+
+@enduml
