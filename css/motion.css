@@ -1,0 +1,116 @@
+/* ==========================================================================
+   css/motion.css – Motion system, page transitions, and interactive physics
+   Shared across all pages; imported directly by css/base.css.
+   Depends on: css/tokens.css
+   ========================================================================== */
+
+/* ------------------------------------------------------------------------
+   1. Page Enter Transitions
+   The content inside #page-content fades in and rises 8px over 200ms on load.
+   ------------------------------------------------------------------------ */
+@keyframes pageEnter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+#page-content {
+  animation: pageEnter var(--duration-base) var(--ease-out) forwards;
+  will-change: opacity, transform;
+}
+
+/* ------------------------------------------------------------------------
+   2. Staggered Cascade for Child Elements
+   Children with class .stagger animate sequentially based on --i (0, 1, 2...).
+   Delay formula: calc(var(--i, 0) * 60ms).
+   ------------------------------------------------------------------------ */
+@keyframes staggerFadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.stagger {
+  opacity: 0;
+  animation: staggerFadeUp var(--duration-base) var(--ease-out) forwards;
+  animation-delay: calc(var(--i, 0) * 60ms);
+  will-change: opacity, transform;
+}
+
+/* ------------------------------------------------------------------------
+   3. Interactive Card Hover Lift & Active Press Physics
+   .card--interactive lifts 2px with stronger shadow on hover; resets on active.
+   ------------------------------------------------------------------------ */
+.card--interactive {
+  transition: transform var(--duration-fast) var(--ease-out),
+              box-shadow var(--duration-fast) var(--ease-out);
+  cursor: pointer;
+  will-change: transform, box-shadow;
+}
+
+.card--interactive:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-card-hover);
+}
+
+.card--interactive:active {
+  transform: translateY(0);
+  box-shadow: var(--shadow-card);
+}
+
+/* ------------------------------------------------------------------------
+   4. Button Press Feedback & Navigation Physics
+   Buttons scale down subtly (0.98) on active click for tactile response.
+   Navigation items transition background and color at 120ms.
+   ------------------------------------------------------------------------ */
+.btn {
+  transition: background-color var(--duration-fast) var(--ease-out),
+              border-color var(--duration-fast) var(--ease-out),
+              color var(--duration-fast) var(--ease-out),
+              transform var(--duration-fast) var(--ease-out);
+}
+
+.btn:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.sidebar-link {
+  transition: background-color var(--duration-fast) var(--ease-out),
+              color var(--duration-fast) var(--ease-out);
+}
+
+/* ------------------------------------------------------------------------
+   5. Accessibility: prefers-reduced-motion
+   Completely disables animations and transitions, presenting the final state immediately.
+   ------------------------------------------------------------------------ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  #page-content,
+  .stagger {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+
+  .card--interactive:hover,
+  .card--interactive:active,
+  .btn:active {
+    transform: none !important;
+  }
+}

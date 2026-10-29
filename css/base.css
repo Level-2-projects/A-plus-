@@ -1,0 +1,137 @@
+/* ==========================================================================
+   css/base.css – Global CSS reset, typography, and base elements
+   Provides unified foundation across all pages in the A Plus platform.
+   Depends on: css/tokens.css, css/motion.css
+   ========================================================================== */
+
+/* 1. Motion System Import */
+@import "./motion.css";
+
+/* 2. Reset and Box Model */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  block-size: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: var(--font-size-14);
+  line-height: var(--line-height-14);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* 3. Typography
+   - Headings, stat numbers, and big figures: Plus Jakarta Sans (weight 700-800)
+   - Body, UI labels, navigation, and buttons: Inter (weight 400-700)
+   - Wordmark & login hero: Montserrat (weight 700 via --font-brand) */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading);
+  color: var(--navy-900);
+  margin-block-start: 0;
+  margin-block-end: var(--space-8);
+  font-weight: 700;
+}
+
+h1 { font-size: var(--font-size-32); line-height: var(--line-height-32); font-weight: 800; }
+h2 { font-size: var(--font-size-24); line-height: var(--line-height-24); font-weight: 700; }
+h3 { font-size: var(--font-size-20); line-height: var(--line-height-20); font-weight: 700; }
+h4 { font-size: var(--font-size-16); line-height: var(--line-height-16); font-weight: 600; }
+h5 { font-size: var(--font-size-14); line-height: var(--line-height-14); font-weight: 600; }
+h6 { font-size: var(--font-size-12); line-height: var(--line-height-12); font-weight: 600; }
+
+p {
+  margin-block-start: 0;
+  margin-block-end: var(--space-16);
+  font-size: var(--font-size-14);
+  line-height: var(--line-height-14);
+}
+
+a {
+  color: var(--secondary);
+  text-decoration: none;
+  transition: color var(--transition);
+}
+
+a:hover {
+  color: var(--secondary);
+  text-decoration: none;
+}
+
+img, svg {
+  display: block;
+  max-inline-size: 100%;
+}
+
+button, input, select, textarea {
+  font-family: var(--font-body);
+  font-size: var(--font-size-14);
+  line-height: var(--line-height-14);
+}
+
+button {
+  cursor: pointer;
+  border: none;
+  background: none;
+}
+
+button,
+input,
+select,
+textarea {
+  font-variant-numeric: tabular-nums;
+}
+
+/* 4. Numerical Data & Big Stats Utilities */
+.tabular-nums,
+[data-tabular="true"] {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Big stat numbers using Plus Jakarta Sans 700-800 */
+.stat-number {
+  font-family: var(--font-heading);
+  font-weight: 800;
+  font-size: var(--font-size-32);
+  line-height: var(--line-height-32);
+  color: var(--navy-900);
+  font-variant-numeric: tabular-nums;
+}
+
+.stat-number--lg {
+  font-size: var(--font-size-40);
+  line-height: var(--line-height-40);
+}
+
+/* 5. Accessibility & Focus States
+   High-contrast visible focus ring: 2px, var(--secondary), 2px offset. */
+[hidden] {
+  display: none !important;
+}
+
+.sr-only {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+:focus-visible {
+  outline: 2px solid var(--secondary);
+  outline-offset: 2px;
+}

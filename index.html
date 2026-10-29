@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sign in – A Plus</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800&family=Inter:wght@400;500;600&family=Caveat:wght@600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="login.css">
+</head>
+<body>
+
+  <!--
+  =====================================================================
+  STRUCTURE OVERVIEW — هيكل الصفحة
+  =====================================================================
+  الصفحة مقسمة لـ 2 عمود (CSS Grid في .page):
+    LEFT  → .form-side  : فورم تسجيل الدخول
+    RIGHT → .hero       : صورة خلفية (بتتخفي على الموبايل < 860px)
+
+  الـ JavaScript مقسم لـ 3 ملفات:
+    config.js → كل القيم اللي بتتغير (Base URL، Routes، Storage Keys)
+    api.js    → الوحيد اللي بيتكلم مع السيرفر (أو يعمل mock للتجربة)
+    login.js  → منطق الـ UI فقط (validation، events، error messages)
+
+  تدفق تسجيل الدخول (Flow):
+    1. المستخدم يكتب البيانات ويضغط Sign in
+    2. login.js يـ validate الـ inputs
+    3. login.js يستدعي api.login()
+    4. api.js يبعت request للسيرفر (أو يرجع mock data)
+    5. لو نجح: api.saveSession تحفظ الـ token، وبعدين redirect حسب الـ role
+    6. لو فشل: بيظهر error message مناسب للمستخدم
+  =====================================================================
+  -->
+
+  <main class="page">
+
+    <!-- ==========================================
+        LEFT SECTION: فورم تسجيل الدخول
+        ========================================== -->
+    <section class="form-side">
+      <div class="card">
+
+        <!--
+          LOGO
+          بنستخدم صورة اللوجو الحقيقي.
+          لو عايز تغير اللوجو، استبدل ملف logo.jpg بس.
+        -->
+        <!--
+          LOGO
+          صورة PNG بخلفية شفافة – بتبان مباشرة على خلفية الصفحة بدون أي خلفية.
+          لو عايز تغير اللوجو، استبدل ملف logo.png بس.
+        -->
+<div class="brand">
+  <img src="logo_clean.png" alt="A Plus" class="brand-logo">
+  <p class="brand-tagline">From classroom<br>to career</p>
+</div>
+
+        <h1>Welcome back!</h1>
+        <p class="subtitle">Sign in to continue your learning journey.</p>
+
+        <!--
+          novalidate: شيلنا الـ browser validation الافتراضي.
+          لأننا بنعمل validation يدوي في login.js بنعرض فيه
+          رسائل خطأ مخصصة ومتحكمين في توقيتها.
+        -->
+        <form id="login-form" novalidate>
+
+          <!--
+            FORM-LEVEL ERROR BOX
+            بيظهر لما يجي error من السيرفر (مش validation error).
+            أمثلة: بيانات غلط، أكونت معطل، مشكلة في الشبكة.
+            role="alert" → screen readers بتقراه تلقائياً لما يظهر.
+            hidden attribute → مخفي في البداية، login.js بيظهره لما يحتاج.
+          -->
+          <p id="form-error" class="form-error" role="alert" hidden></p>
+
+          <!--
+            IDENTIFIER FIELD
+            بيقبل: email أو university ID (السيرفر بيتعامل مع الاتنين).
+            aria-describedby → يربط الـ input بـ error paragraph تحته
+            عشان screen readers تربطهم ببعض (accessibility).
+          -->
+          <div class="field">
+            <input id="identifier" name="identifier" type="text"
+                   autocomplete="username" placeholder="Email or university ID"
+                   aria-label="Email or university ID" aria-describedby="identifier-error">
+            <!-- Error يظهر تحت الـ input لو الـ field فاضي -->
+            <p id="identifier-error" class="field-error" hidden></p>
+          </div>
+
+          <!--
+            PASSWORD FIELD + SHOW/HIDE TOGGLE
+            الـ toggle button (العين) بيغير type الـ input:
+              "password" → الكتابة مخفية (نقاط)
+              "text"     → الكتابة ظاهرة
+            الكود الخاص بيه في login.js → toggleBtn.addEventListener("click", ...)
+          -->
+          <div class="field">
+            <div class="password-wrap">
+              <input id="password" name="password" type="password"
+                     autocomplete="current-password" placeholder="Password"
+                     aria-label="Password" aria-describedby="password-error">
+
+              <!-- زرار show/hide – الـ icons بتتبدل من JS -->
+              <button id="toggle-password" type="button" class="toggle" aria-label="Show password">
+                <!-- Eye open: يظهر لما الباسورد مخفي (الحالة الافتراضية) -->
+                <svg id="icon-show" xmlns="http://www.w3.org/2000/svg" width="20" height="20"
+                     viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                     stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                  <circle cx="12" cy="12" r="3"/>
+                </svg>
+                <!-- Eye crossed: يظهر لما الباسورد مرئي – style بدل hidden عشان JS يقدر يغيره -->
+                <svg id="icon-hide" xmlns="http://www.w3.org/2000/svg" width="20" height="20"
+                     viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                     stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                     style="display:none">
+                  <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/>
+                  <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/>
+                  <line x1="1" y1="1" x2="23" y2="23"/>
+                </svg>
+              </button>
+            </div>
+            <!-- Error يظهر تحت الـ input لو الـ field فاضي -->
+            <p id="password-error" class="field-error" hidden></p>
+          </div>
+
+          <!--
+            REMEMBER ME CHECKBOX
+            true  → saveSession تحفظ في localStorage (يبقى حتى لو أقفلت المتصفح)
+            false → saveSession تحفظ في sessionStorage (بيتمسح لما تقفل الـ tab)
+            الكود في api.js → saveSession()
+          -->
+          <div class="row">
+            <!-- Custom checkbox: الـ input مخفي والـ span هو اللي بيتعمله style -->
+            <label class="remember">
+              <input id="remember" type="checkbox">
+              <span class="checkbox-box">
+                <!-- checkmark SVG بيظهر لما يتعمل check -->
+                <svg viewBox="0 0 12 10" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="1,5 4.5,9 11,1"/>
+                </svg>
+              </span>
+              <span class="remember-label">Remember me</span>
+            </label>
+          </div>
+
+          <!--
+            SUBMIT BUTTON
+            بيتعطل (disabled + cursor: wait) أثناء الـ API request
+            عشان نمنع double-submit لو المستخدم ضغط أكتر من مرة.
+            الكود في login.js → setLoading()
+          -->
+          <button id="submit-btn" class="btn" type="submit">Sign in</button>
+        </form>
+
+        <!--
+          NOTE
+          الأكونتات مش self-registration.
+          الـ admin هو اللي بيعمل كل أكونت من الـ dashboard.
+        -->
+        <p class="note">Accounts are created by your college administrator.</p>
+      </div>
+    </section>
+
+    <!-- ==========================================
+        RIGHT SECTION: Hero / صورة الكلية
+        aria-hidden="true" → مخفي من screen readers (زخرفة بس)
+        مخفي على الموبايل بـ CSS (login.css → @media max-width: 860px)
+        ========================================== -->
+    <aside class="hero" aria-hidden="true">
+      <p class="hero-tag">Learn · Grow<br>Build Your Future</p>
+    </aside>
+
+  </main>
+
+  <!--
+    type="module" → بيسمحلنا نقسم الـ JS لملفات (import/export).
+    ⚠️ مهم: لازم تشغل الصفحة من local server (مثلاً VS Code Live Server)
+    مش من file:// مباشرة، لأن ES Modules مش بتشتغل على file://.
+  -->
+  <script type="module" src="login.js"></script>
+</body>
+</html>

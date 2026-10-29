@@ -1,0 +1,200 @@
+/* ==========================================================================
+   A Plus – Login page styles
+   Sections: 1 Tokens · 2 Base · 3 Layout · 4 Brand/Text · 5 Form · 6 Hero · 7 Responsive
+   ========================================================================== */
+
+/* 1. DESIGN TOKENS – imported from shared css/tokens.css */
+@import "./css/tokens.css";
+
+/* 2. BASE */
+*, *::before, *::after { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font: 15px/1.5 var(--font-body);
+}
+[hidden] { display: none !important; }   /* make the hidden attribute always win */
+
+/* 3. LAYOUT – side-by-side: responsive scaling where photo is larger than half but caps at max-width */
+.page {
+  min-height: 100%;
+  display: grid;
+  grid-template-columns: 1fr minmax(420px, min(40vw, 760px));
+}
+.form-side {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48px clamp(24px, 5vw, 64px);
+  z-index: 2;
+}
+.card { width: 100%; max-width: 400px; margin: 0 auto; }
+
+/* 4. BRAND + TEXT */
+.brand { display: flex; align-items: center; gap: 16px; margin-bottom: 32px; }
+
+.brand-logo { height: 90px; width: auto; display: block; }
+
+/* Sentence next to the logo, with a thin divider line on its left */
+.brand-tagline {
+  margin: 0;
+  padding-left: 16px;
+  border-left: 2px solid var(--accent);   /* gold line ties it to the logo */
+  font: 600 17px/1.3 var(--font-heading);
+  color: var(--primary);
+}
+h1 { margin: 0 0 6px; font: 700 30px/1.2 var(--font-brand); }
+.subtitle { margin: 0 0 28px; color: var(--muted); }
+.note { margin: 26px 0 0; text-align: center; color: var(--muted); font-size: 13.5px; }
+
+
+/* 5. FORM */
+.field { margin-bottom: 14px; }
+input[type="text"], input[type="password"] {
+  width: 100%; height: 48px; padding: 0 14px;
+  border: 1px solid var(--border); border-radius: var(--radius);
+  background: var(--surface); color: var(--text); font: inherit;
+}
+input::placeholder { color: var(--muted); }
+input:focus-visible, .btn:focus-visible, .toggle:focus-visible, .link:focus-visible {
+  outline: 3px solid var(--secondary); outline-offset: 2px;
+}
+input[aria-invalid="true"] { border-color: var(--error); }   /* set from JS on validation error */
+
+.password-wrap { position: relative; }
+.password-wrap input { padding-right: 70px; }
+.toggle {
+  position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
+  width: 36px; height: 36px; padding: 0; border: 0; border-radius: 8px;
+  background: none; color: var(--primary); cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+
+.field-error { margin: 6px 0 0; color: var(--error); font-size: 13.5px; }
+.form-error {
+  margin: 0 0 14px; padding: 10px 12px;
+  border: 1px solid var(--error); border-radius: var(--radius);
+  color: var(--error); font-size: 14px;
+}
+
+.row { display: flex; justify-content: space-between; align-items: center; margin: 4px 0 22px; font-size: 14px; }
+
+/* ── Custom Checkbox ── */
+.remember {
+  display: flex; align-items: center; gap: 10px;
+  cursor: pointer; user-select: none;
+}
+
+/* مخفي الـ input الأصلي تماماً */
+.remember input[type="checkbox"] {
+  position: absolute; opacity: 0; width: 0; height: 0; pointer-events: none;
+}
+
+/* المربع المرئي */
+.checkbox-box {
+  flex: none;
+  width: 20px; height: 20px;
+  border: 2px solid var(--border);
+  border-radius: 5px;
+  background: var(--surface);
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.18s, border-color 0.18s;
+}
+.checkbox-box svg {
+  width: 11px; height: 9px;
+  opacity: 0;
+  transform: scale(0.6);
+  transition: opacity 0.15s, transform 0.15s;
+}
+
+/* لما يتعمل check */
+.remember input:checked ~ .checkbox-box {
+  background: var(--primary);
+  border-color: var(--primary);
+}
+.remember input:checked ~ .checkbox-box svg {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* focus ring على المربع */
+.remember input:focus-visible ~ .checkbox-box {
+  outline: 3px solid var(--secondary); outline-offset: 2px;
+}
+
+.remember-label {
+  color: var(--text);
+  font-family: Inter, system-ui, sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.1px;
+  transition: color 0.15s ease;
+}
+.remember:hover .remember-label {
+  color: var(--primary);
+}
+.remember:hover .checkbox-box {
+  border-color: var(--secondary);
+}
+
+.link { color: var(--secondary); font-weight: 600; text-decoration: none; }
+.link:hover { color: var(--secondary); text-decoration: none; }
+
+
+.btn {
+  width: 100%; height: 50px; border: 0; border-radius: var(--radius);
+  background: var(--primary); color: #fff; font: 600 16px var(--font-body); cursor: pointer;
+  transition: background-color var(--transition);
+}
+.btn:hover { background-color: var(--btn-primary-hover); }
+.btn:disabled { opacity: .65; cursor: wait; }        /* while the request is in flight */
+
+/* 6. HERO – صورة الكلية الحقيقية بتدرج ناعم يكسر الخط */
+.hero {
+  position: relative;
+  min-height: 100%;
+  overflow: hidden;
+  background-color: var(--bg);
+  background-image:
+    /* تدرج من جهة الشمال لكسر الخط الفاصل مع خلفية الصفحة */
+    linear-gradient(to right, var(--bg) 0%, rgba(245, 249, 252, 0.7) 4%, rgba(245, 249, 252, 0) 16%),
+    /* تدرج خفيف فوق للكلام */
+    linear-gradient(to bottom, rgba(0, 0, 0, 0.45) 0%, rgba(0, 0, 0, 0) 30%),
+    url("campus_final.jpg");
+  background-position: center 20%;
+  background-size: cover;
+  background-repeat: no-repeat;
+}
+
+/* كلام فوق الصورة */
+.hero-tag {
+  position: absolute; top: 8%; left: 50%; transform: translateX(-50%);
+  margin: 0; text-align: center; white-space: nowrap;
+  font: 700 clamp(22px, 2.6vw, 38px)/1.3 var(--font-brand);
+  color: #fff;
+  text-shadow: 0 2px 12px rgba(0,0,0,.6);
+  letter-spacing: 2px;
+}
+
+/* خط ذهبي تحت الكلام */
+.hero-tag::after {
+  content: "";
+  display: block;
+  width: 48px; height: 3px;
+  background: var(--accent);
+  border-radius: 2px;
+  margin: 10px auto 0;
+}
+
+/* 7. RESPONSIVE – on tablets & phones */
+@media (max-width: 960px) {
+  .page { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 860px) {
+  .page { grid-template-columns: 1fr; }
+  .hero { display: none; }
+  .form-side { padding: 32px 24px; }
+  .brand { margin-bottom: 32px; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }

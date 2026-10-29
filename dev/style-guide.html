@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Developer Style Guide & Design System – A Plus</title>
+  <!--
+  =====================================================================
+  DEVELOPER ONLY STYLE GUIDE – NOT PART OF THE PUBLIC PRODUCT
+  =====================================================================
+  This page is strictly an internal development and visual verification tool.
+  It showcases every design token, typographic scale, motion behavior,
+  and reusable component in the A Plus design system.
+  It imports the real shared CSS and JS modules directly with zero duplicated styles.
+  =====================================================================
+  -->
+  <link rel="stylesheet" href="../css/tokens.css">
+  <link rel="stylesheet" href="../css/base.css">
+  <link rel="stylesheet" href="../css/components.css">
+  <style>
+    /* Developer test page layout constraints (scoped only to style guide) */
+    .sg-container {
+      max-inline-size: 1100px;
+      margin-inline: auto;
+      padding-block: var(--space-40);
+      padding-inline: var(--space-24);
+    }
+
+    .sg-section {
+      margin-block-end: var(--space-48);
+    }
+
+    .sg-section-title {
+      font-size: var(--font-size-20);
+      font-weight: 700;
+      color: var(--navy-900);
+      border-block-end: 2px solid var(--border);
+      padding-block-end: var(--space-8);
+      margin-block-end: var(--space-24);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .sg-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: var(--space-16);
+    }
+
+    .sg-color-chip {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-card);
+      overflow: hidden;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .sg-color-swatch {
+      block-size: 80px;
+      inline-size: 100%;
+    }
+
+    .sg-color-meta {
+      padding: 12px;
+    }
+
+    .sg-color-name {
+      font-weight: 600;
+      font-size: var(--font-size-14);
+      color: var(--navy-900);
+      margin: 0 0 4px;
+    }
+
+    .sg-color-code {
+      font-size: var(--font-size-12);
+      color: var(--muted);
+      font-family: monospace;
+      margin: 0;
+    }
+
+    .sg-flex-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: var(--space-16);
+    }
+
+    .sg-dev-banner {
+      background-color: var(--navy-900);
+      color: var(--text-inverse);
+      padding: var(--space-16) var(--space-24);
+      border-radius: var(--radius-card);
+      margin-block-end: var(--space-32);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .sg-dev-tag {
+      background-color: var(--gold);
+      color: var(--navy-900);
+      font-weight: 700;
+      font-size: 11px;
+      padding: 4px 8px;
+      border-radius: var(--radius-sm);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="sg-container">
+
+    <!-- Developer Banner -->
+    <header class="sg-dev-banner">
+      <div>
+        <h1 style="color: #fff; font-size: var(--font-size-24); margin: 0 0 4px;">A Plus – Design System Style Guide</h1>
+        <p style="margin: 0; color: #cbd5e1; font-size: var(--font-size-14);">Living reference for tokens, typography, motion physics, and reusable UI components.</p>
+      </div>
+      <span class="sg-dev-tag">Developer Sandbox</span>
+    </header>
+
+    <!-- 1. Color Palette -->
+    <section class="sg-section">
+      <h2 class="sg-section-title">1. Color Palette & Semantic Tokens</h2>
+      <div class="sg-grid">
+        <div class="sg-color-chip">
+          <div class="sg-color-swatch" style="background-color: var(--primary);"></div>
+          <div class="sg-color-meta">
+            <p class="sg-color-name">Primary (University Blue)</p>
+            <p class="sg-color-code">var(--primary) · #1F4B7F</p>
+          </div>
+        </div>
+        <div class="sg-color-chip">
+          <div class="sg-color-swatch" style="background-color: var(--navy-900);"></div>
+          <div class="sg-color-meta">
+            <p class="sg-color-name">Deep Navy (Headings/Brand)</p>
+            <p class="sg-color-code">var(--navy-900) · #0F2A4D</p>
+          </div>
+        </div>
+        <div class="sg-color-chip">
+          <div class="sg-color-swatch" style="background-color: var(--secondary);"></div>
+          <div class="sg-color-meta">
+            <p class="sg-color-name">Secondary (Medium Blue)</p>
+            <p class="sg-color-code">var(--secondary) · #2F80C4</p>
+          </div>
+        </div>
+        <div class="sg-color-chip">
+          <div class="sg-color-swatch" style="background-color: var(--aqua);"></div>
+          <div class="sg-color-meta">
+            <p class="sg-color-name">Aqua (Progress & Metrics)</p>
+            <p class="sg-color-code">var(--aqua) · #27A7C4</p>
+          </div>
+        </div>
+        <div class="sg-color-chip">
+          <div class="sg-color-swatch" style="background-color: var(--gold);"></div>
+          <div class="sg-color-meta">
+            <p class="sg-color-name">Accent Gold (Badges & Points)</p>
+            <p class="sg-color-code">var(--gold) · #D4A72C</p>
+          </div>
+        </div>
+        <div class="sg-color-chip">
+          <div class="sg-color-swatch" style="background-color: var(--bg); border-block-end: 1px solid var(--border);"></div>
+          <div class="sg-color-meta">
+            <p class="sg-color-name">Background (Canvas)</p>
+            <p class="sg-color-code">var(--bg) · #EDF2F8</p>
+          </div>
+        </div>
+        <div class="sg-color-chip">
+          <div class="sg-color-swatch" style="background-color: var(--border);"></div>
+          <div class="sg-color-meta">
+            <p class="sg-color-name">Border</p>
+            <p class="sg-color-code">var(--border) · #DCE4EE</p>
+          </div>
+        </div>
+        <div class="sg-color-chip">
+          <div class="sg-color-swatch" style="background-color: var(--success);"></div>
+          <div class="sg-color-meta">
+            <p class="sg-color-name">Success (Status Only)</p>
+            <p class="sg-color-code">var(--success) · #2E9E5B</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. Medals Palette -->
+    <section class="sg-section">
+      <h2 class="sg-section-title">2. Gamification Medal Tokens & Component</h2>
+      <div class="card sg-flex-row">
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <span class="medal medal--gold">1</span>
+          <div>
+            <strong>1st Place (Gold)</strong><br>
+            <code style="font-size: 12px; color: var(--muted);">var(--medal-gold) · #D4A72C</code>
+          </div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 12px; margin-inline-start: 24px;">
+          <span class="medal medal--silver">2</span>
+          <div>
+            <strong>2nd Place (Silver)</strong><br>
+            <code style="font-size: 12px; color: var(--muted);">var(--medal-silver) · #A8B3C2</code>
+          </div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 12px; margin-inline-start: 24px;">
+          <span class="medal medal--bronze">3</span>
+          <div>
+            <strong>3rd Place (Bronze)</strong><br>
+            <code style="font-size: 12px; color: var(--muted);">var(--medal-bronze) · #B87333</code>
+          </div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 12px; margin-inline-start: 24px;">
+          <span class="medal medal--gold medal--lg">1</span>
+          <div>
+            <strong>Large Variant (.medal--lg)</strong><br>
+            <code style="font-size: 12px; color: var(--muted);">36px diameter</code>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. Typography Scale -->
+    <section class="sg-section">
+      <h2 class="sg-section-title">3. Typography Scale & Font Stacks</h2>
+      <div class="card" style="display: flex; flex-direction: column; gap: var(--space-16);">
+        <div>
+          <span style="font-size: var(--font-size-12); color: var(--muted);">Display 40px / 48px – Plus Jakarta Sans 800</span>
+          <div class="stat-number stat-number--lg">From classroom to career</div>
+        </div>
+        <div>
+          <span style="font-size: var(--font-size-12); color: var(--muted);">H1 32px / 40px – Plus Jakarta Sans 800</span>
+          <h1 style="margin: 0;">Academic Overview & Metrics</h1>
+        </div>
+        <div>
+          <span style="font-size: var(--font-size-12); color: var(--muted);">H2 24px / 32px – Plus Jakarta Sans 700</span>
+          <h2 style="margin: 0;">Software Engineering Curriculum</h2>
+        </div>
+        <div>
+          <span style="font-size: var(--font-size-12); color: var(--muted);">H3 20px / 28px – Plus Jakarta Sans 700</span>
+          <h3 style="margin: 0;">Enrolled Courses & Active Semesters</h3>
+        </div>
+        <div>
+          <span style="font-size: var(--font-size-12); color: var(--muted);">Body 14px / 20px – Inter 400</span>
+          <p style="margin: 0;">A Plus is engineered for modern college software engineering instruction with continuous AI feedback and attendance tracking.</p>
+        </div>
+        <div>
+          <span style="font-size: var(--font-size-12); color: var(--muted);">Brand Wordmark 20px – Montserrat 700 (Strictly reserved)</span>
+          <div style="font-family: var(--font-brand); font-size: var(--font-size-20); font-weight: 700; color: var(--navy-900);">A Plus (Wordmark only)</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. Stat Figures & Animated Count-Up -->
+    <section class="sg-section">
+      <h2 class="sg-section-title">4. Numerical Stat Figures & Viewport Count-Up</h2>
+      <p style="color: var(--muted); font-size: var(--font-size-14);">Uses <code>initCountUp()</code> with requestAnimationFrame, cubic ease-out, locale comma formatting, and reduced-motion fallback.</p>
+      <div class="sg-grid">
+        <div class="card">
+          <span style="font-size: var(--font-size-12); color: var(--muted);">Total Points Earned</span>
+          <div class="stat-number" data-count-up="1420" data-count-suffix=" pts">0</div>
+          <span style="font-size: var(--font-size-12); color: var(--muted);">October 2026 Standing</span>
+        </div>
+        <div class="card">
+          <span style="font-size: var(--font-size-12); color: var(--muted);">Attendance Ratio</span>
+          <div class="stat-number" data-count-up="91.2" data-count-decimals="1" data-count-suffix="%">0</div>
+          <span style="font-size: var(--font-size-12); color: var(--success); font-weight: 600;">Good standing</span>
+        </div>
+        <div class="card">
+          <span style="font-size: var(--font-size-12); color: var(--muted);">Completed Submissions</span>
+          <div class="stat-number" data-count-up="28">0</div>
+          <span style="font-size: var(--font-size-12); color: var(--muted);">Across 5 enrolled courses</span>
+        </div>
+        <div class="card">
+          <span style="font-size: var(--font-size-12); color: var(--muted);">Enrolled Department Students</span>
+          <div class="stat-number" data-count-up="12450">0</div>
+          <span style="font-size: var(--font-size-12); color: var(--muted);">Thousands separator demo</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- 5. Progress Indicators: Rings & Bars -->
+    <section class="sg-section">
+      <h2 class="sg-section-title">5. Progress Indicators (Rings & Bars)</h2>
+      <div class="card" style="margin-block-end: var(--space-16);">
+        <h3 style="font-size: var(--font-size-16); margin-block-end: var(--space-16);">Accessible SVG Progress Rings</h3>
+        <div class="sg-flex-row" id="rings-demo-container">
+          <!-- Dynamically mounted via createProgressRing() in JS below -->
+        </div>
+      </div>
+
+      <div class="card">
+        <h3 style="font-size: var(--font-size-16); margin-block-end: var(--space-16);">Progress Bars (8px track with rounded fill)</h3>
+        <div style="display: flex; flex-direction: column; gap: var(--space-16);">
+          <div>
+            <div style="display: flex; justify-content: space-between; font-size: var(--font-size-12); margin-block-end: 4px;">
+              <span>SE301 Software Architecture (Default Aqua)</span>
+              <span class="tabular-nums font-weight-bold">75%</span>
+            </div>
+            <div class="progress-bar">
+              <div class="progress-bar-fill" style="inline-size: 75%;"></div>
+            </div>
+          </div>
+          <div>
+            <div style="display: flex; justify-content: space-between; font-size: var(--font-size-12); margin-block-end: 4px;">
+              <span>SE302 Database Systems (Primary Variant)</span>
+              <span class="tabular-nums font-weight-bold">90%</span>
+            </div>
+            <div class="progress-bar">
+              <div class="progress-bar-fill progress-bar-fill--primary" style="inline-size: 90%;"></div>
+            </div>
+          </div>
+          <div>
+            <div style="display: flex; justify-content: space-between; font-size: var(--font-size-12); margin-block-end: 4px;">
+              <span>SE304 Operating Systems (Warning Variant)</span>
+              <span class="tabular-nums font-weight-bold">45%</span>
+            </div>
+            <div class="progress-bar">
+              <div class="progress-bar-fill progress-bar-fill--warning" style="inline-size: 45%;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 6. Card Variants & Physics -->
+    <section class="sg-section">
+      <h2 class="sg-section-title">6. Card Modifiers & Interactive Physics</h2>
+      <div style="display: flex; flex-direction: column; gap: var(--space-16);">
+        <!-- Hero Card -->
+        <div class="card--hero">
+          <span style="font-size: var(--font-size-12); text-transform: uppercase; letter-spacing: 0.08em; opacity: 0.85;">Featured Module</span>
+          <h2 style="font-size: var(--font-size-24); margin: 8px 0;">.card--hero (Navy to Primary Gradient)</h2>
+          <p style="margin: 0; max-width: 600px; opacity: 0.9;">Designed for primary dashboard welcome greetings, milestone completions, and prominent banners.</p>
+        </div>
+
+        <!-- Interactive Cards Grid -->
+        <div class="sg-grid">
+          <div class="card card--interactive">
+            <h3 style="font-size: var(--font-size-16); margin-block-end: 8px;">.card--interactive</h3>
+            <p style="color: var(--muted); font-size: var(--font-size-14); margin: 0;">Hover over this card to observe the 2px lift and shadow elevation physics.</p>
+          </div>
+          <div class="card card--interactive">
+            <h3 style="font-size: var(--font-size-16); margin-block-end: 8px;">Active Click Physics</h3>
+            <p style="color: var(--muted); font-size: var(--font-size-14); margin: 0;">Click down on this card to observe it cleanly return to rest state.</p>
+          </div>
+          <div class="card">
+            <h3 style="font-size: var(--font-size-16); margin-block-end: 8px;">Standard .card</h3>
+            <p style="color: var(--muted); font-size: var(--font-size-14); margin: 0;">Static elevation card with 1px border and crisp neutral shadow.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 7. Buttons & Form Inputs -->
+    <section class="sg-section">
+      <h2 class="sg-section-title">7. Buttons & Inputs (Press scale: 0.98)</h2>
+      <div class="card" style="display: flex; flex-direction: column; gap: var(--space-24);">
+        <div class="sg-flex-row">
+          <button class="btn btn-primary" type="button">Primary Button</button>
+          <button class="btn btn-secondary" type="button">Secondary Button</button>
+          <button class="btn btn-ghost" type="button">Ghost Button</button>
+          <button class="btn btn-primary" type="button" disabled>Disabled State</button>
+        </div>
+        <div style="max-inline-size: 360px;">
+          <input class="input" type="text" placeholder="Sample .input field with 2px focus ring">
+        </div>
+      </div>
+    </section>
+
+    <!-- 8. Status Components (No Tinted Backgrounds) -->
+    <section class="sg-section">
+      <h2 class="sg-section-title">8. .status Dot Components (Strictly No Pills/Chips)</h2>
+      <div class="card sg-flex-row">
+        <span class="status status-success">Passed / Attended</span>
+        <span class="status status-warning">Absence Warning</span>
+        <span class="status status-danger">Grade Penalty Risk</span>
+        <span class="status status-info">Submission Active</span>
+        <span class="status status-neutral">Archived Session</span>
+      </div>
+    </section>
+
+    <!-- 9. Skeletons & Motion Stagger -->
+    <section class="sg-section">
+      <h2 class="sg-section-title">9. Skeleton Shimmers & Stagger Cascade</h2>
+      <div class="card" style="display: flex; flex-direction: column; gap: var(--space-16);">
+        <h3 style="font-size: var(--font-size-16); margin: 0;">Stagger Cascade (.stagger with --i)</h3>
+        <div class="sg-flex-row">
+          <div class="stagger card" style="--i: 0; min-inline-size: 160px; text-align: center;">Item #1 (delay: 0ms)</div>
+          <div class="stagger card" style="--i: 1; min-inline-size: 160px; text-align: center;">Item #2 (delay: 60ms)</div>
+          <div class="stagger card" style="--i: 2; min-inline-size: 160px; text-align: center;">Item #3 (delay: 120ms)</div>
+          <div class="stagger card" style="--i: 3; min-inline-size: 160px; text-align: center;">Item #4 (delay: 180ms)</div>
+        </div>
+
+        <h3 style="font-size: var(--font-size-16); margin: var(--space-16) 0 0;">Animated Skeleton Loaders</h3>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <span class="skeleton" style="inline-size: 60%; block-size: 20px;"></span>
+          <span class="skeleton" style="inline-size: 85%; block-size: 16px;"></span>
+          <span class="skeleton" style="inline-size: 40%; block-size: 16px;"></span>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <!-- Reusable Modules Integration Script -->
+  <script type="module">
+    import { initCountUp } from "../js/core/count-up.js";
+    import { createProgressRing } from "../js/components/progress-ring.js";
+
+    // 1. Initialize numerical count-up on all [data-count-up] targets
+    initCountUp(document);
+
+    // 2. Mount accessible progress rings
+    const ringsContainer = document.getElementById("rings-demo-container");
+    if (ringsContainer) {
+      // Aqua variant (default)
+      ringsContainer.appendChild(createProgressRing({
+        value: 78,
+        size: 72,
+        strokeWidth: 6,
+        label: "SE301 Completion",
+        variant: "aqua"
+      }));
+
+      // Primary variant
+      ringsContainer.appendChild(createProgressRing({
+        value: 92,
+        size: 72,
+        strokeWidth: 6,
+        label: "Overall Attendance",
+        variant: "primary"
+      }));
+
+      // Success variant
+      ringsContainer.appendChild(createProgressRing({
+        value: 100,
+        size: 72,
+        strokeWidth: 6,
+        label: "Quiz Mastery",
+        variant: "success"
+      }));
+
+      // Warning variant
+      ringsContainer.appendChild(createProgressRing({
+        value: 40,
+        size: 72,
+        strokeWidth: 6,
+        label: "Risk Warning",
+        variant: "warning"
+      }));
+    }
+  </script>
+</body>
+</html>
