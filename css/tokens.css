@@ -1,0 +1,161 @@
+/* ==========================================================================
+   css/tokens.css – Single source of truth for design tokens in "A Plus"
+   Shared across login and authenticated portals (student, doctor, admin).
+   Depends on: Nothing (root design tokens).
+   ========================================================================== */
+
+/* ------------------------------------------------------------------------
+   0. Shared Font Imports (Loaded once here for the entire application)
+   - Plus Jakarta Sans: 600, 700, 800 (Headings, stat numbers, large figures)
+   - Inter: 400, 500, 600, 700 (Body text, UI labels, navigation, buttons)
+   - Montserrat: 700 (Wordmark & login "Welcome back!" heading only)
+   - Source Serif 4: 600, 700 (Authenticated topbar page title only)
+   ------------------------------------------------------------------------ */
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@700&family=Plus+Jakarta+Sans:wght@600;700;800&family=Source+Serif+4:wght@600;700&display=swap");
+
+:root {
+  /* ------------------------------------------------------------------------
+     1. Brand Colors
+     ------------------------------------------------------------------------ */
+  --navy-900: #0F2A4D;         /* Deep navy: headings, wordmark, strong text */
+  --primary: #1F4B7F;          /* University blue: buttons, solid active states, links */
+  /* Shared solid-button hover, matching the sign-in button. */
+  --btn-primary-hover: #2F80C4;
+  /* Subtle neutral interaction fill for non-navigation controls. */
+  --control-hover-bg: #F1F5FA;
+  --secondary: #2F80C4;        /* Medium blue: interactive focus rings, accents */
+  --aqua: #27A7C4;             /* Lake aqua: progress bars, rings, metrics */
+  --gold: #D4A72C;             /* Accent gold: ONLY for count badges & points */
+  --accent: var(--gold);
+
+  /* ------------------------------------------------------------------------
+     2. Medal Palette (For gamification, leaderboards, and top-3 rankings)
+     ------------------------------------------------------------------------ */
+  --medal-gold: #D4A72C;
+  --medal-silver: #A8B3C2;
+  --medal-bronze: #B87333;
+
+  /* ------------------------------------------------------------------------
+     3. Neutral Surfaces & Backgrounds
+     ------------------------------------------------------------------------ */
+  --bg: #E8F0F8;
+  --bg-glow-aqua: rgba(39, 167, 196, 0.14);
+  --bg-glow-blue: rgba(47, 128, 196, 0.12);
+  --surface: #FFFFFF;          /* Pure white: cards, sidebar, topbar, inputs */
+  --border: #DCE4EE;           /* Crisp neutral border matching palette */
+  --border-light: #E9EFF6;     /* Subtle divider border */
+
+  /* ------------------------------------------------------------------------
+     4. Text & Typography Colors
+     ------------------------------------------------------------------------ */
+  --text: #0F1F33;             /* Primary body text: high contrast charcoal-navy */
+  --text-strong: #44546A;      /* Inactive navigation links, strong secondary labels */
+  --muted: #5B6B7F;            /* Secondary muted text */
+  --text-light: #5B6B7F;
+  --text-inverse: #FFFFFF;     /* Pure white text on dark surfaces */
+
+  /* ------------------------------------------------------------------------
+     5. Status & Feedback (Green is strictly for success, never branding)
+     ------------------------------------------------------------------------ */
+  --success: #2E9E5B;          /* Success green */
+  --warning: #E8A317;          /* Warning amber */
+  --danger: #D64545;           /* Danger red */
+  --error: var(--danger);
+  --info: #3B82C4;             /* Info blue */
+
+  /* ------------------------------------------------------------------------
+     6. Chart Palette Tokens (in strict presentation order)
+     ------------------------------------------------------------------------ */
+  --course-1: #2F80C4;
+  --course-2: #27A7C4;
+  --course-3: #6B63D6;
+  --course-4: #2E9E8F;
+  --course-5: #E5736A;
+  --course-6: #7A9A3A;
+
+  /* ------------------------------------------------------------------------
+     7. Sidebar Theme Tokens
+     ------------------------------------------------------------------------ */
+  --sidebar-bg: #FFFFFF;
+  --sidebar-border: var(--border);
+  --sidebar-text: #44546A;
+  /* Sidebar-only inactive navigation hover surface. */
+  --nav-hover-bg: #E9F1FB;
+  /* Sidebar-only navigation hover label color. */
+  --nav-hover-text: var(--navy-900);
+  /* Sidebar-only navigation hover icon color. */
+  --nav-hover-icon: var(--primary);
+  --sidebar-active-bg: var(--primary);
+  --sidebar-active-text: #FFFFFF;
+  --sidebar-footer-text: var(--muted);
+  --sidebar-width: 264px;
+  --topbar-height: 64px;
+
+  /* ------------------------------------------------------------------------
+     8. Typography Families
+     - Headings & stat numbers: Plus Jakarta Sans (weight 700-800)
+     - Body, UI labels, buttons: Inter (weight 400-700)
+     - Wordmark & login hero: Montserrat (weight 700)
+     - Authenticated topbar title: Source Serif 4 (weight 700)
+     ------------------------------------------------------------------------ */
+  --font-heading: 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', Arial, sans-serif;
+  --font-body: 'Inter', system-ui, -apple-system, 'Segoe UI', Arial, sans-serif;
+  --font-brand: 'Montserrat', system-ui, -apple-system, 'Segoe UI', Arial, sans-serif;
+  /* Reserved for the authenticated page title in the topbar. */
+  --font-title: 'Source Serif 4', Georgia, 'Times New Roman', serif;
+
+  /* ------------------------------------------------------------------------
+     9. Type Scale & Matching Line Heights
+     ------------------------------------------------------------------------ */
+  --font-size-12: 12px;
+  --line-height-12: 16px;
+
+  --font-size-14: 14px;
+  --line-height-14: 20px;
+
+  --font-size-16: 16px;
+  --line-height-16: 24px;
+
+  --font-size-20: 20px;
+  --line-height-20: 28px;
+
+  --font-size-24: 24px;
+  --line-height-24: 32px;
+
+  --font-size-32: 32px;
+  --line-height-32: 40px;
+
+  --font-size-40: 40px;
+  --line-height-40: 48px;
+
+  /* ------------------------------------------------------------------------
+     10. Motion System Tokens
+     ------------------------------------------------------------------------ */
+  --duration-fast: 120ms;
+  --duration-base: 200ms;
+  --duration-slow: 400ms;
+  --ease-out: cubic-bezier(0.22, 0.61, 0.36, 1);
+
+  --transition: var(--duration-fast) var(--ease-out);
+
+  /* ------------------------------------------------------------------------
+     11. Shape, Spacing & Shadows (Multiples of 8px)
+     ------------------------------------------------------------------------ */
+  --space-8: 8px;
+  --space-16: 16px;
+  --space-24: 24px;
+  --space-32: 32px;
+  --space-40: 40px;
+  --space-48: 48px;
+
+  --radius-sm: 6px;
+  --radius-control: 10px;      /* Standard control radius: inputs, buttons, nav items */
+  --radius: 10px;              /* Backward compatibility alias */
+  --radius-card: 12px;         /* Standard card radius */
+  --radius-hero: 16px;         /* Hero card radius */
+  --radius-full: 9999px;
+
+  --shadow-card: 0 1px 3px rgba(15, 31, 51, 0.08), 0 1px 2px rgba(15, 31, 51, 0.04);
+  --shadow-card-hover: 0 4px 12px rgba(15, 31, 51, 0.12);
+  --shadow-dropdown: 0 8px 24px rgba(15, 31, 51, 0.12);
+}

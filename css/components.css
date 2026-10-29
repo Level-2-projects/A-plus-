@@ -1,0 +1,589 @@
+/* ==========================================================================
+   css/components.css – Reusable UI components for "A Plus"
+   Includes notification badges, dropdown menus, cards, buttons, .status, inputs, skeleton.
+   Rule: NEVER use boxes with soft/translucent colored backgrounds anywhere.
+   Depends on: css/tokens.css, css/base.css
+   ========================================================================== */
+
+/* ------------------------------------------------------------------------
+   1. Badges & Topbar Indicators
+   ------------------------------------------------------------------------ */
+
+/* Count badge: SOLID gold circle with dark text (only filled badge permitted) */
+.nav-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 20px;
+  block-size: 20px;
+  min-inline-size: 20px;
+  padding: 0;
+  border-radius: var(--radius-full);
+  background-color: var(--gold);
+  color: var(--navy-900);
+  font-size: var(--font-size-12);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+/* Bell button in topbar */
+.bell-btn {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 40px;
+  block-size: 40px;
+  border-radius: var(--radius-control);
+  color: var(--text-strong);
+  transition: background-color var(--transition), color var(--transition);
+}
+
+.bell-btn:hover,
+.bell-btn[aria-expanded="true"] {
+  background-color: var(--control-hover-bg);
+}
+
+/* Bell unread dot */
+.bell-dot {
+  position: absolute;
+  inset-block-start: 9px;
+  inset-inline-end: 9px;
+  inline-size: 8px;
+  block-size: 8px;
+  border-radius: var(--radius-full);
+  background-color: var(--danger);
+  border: 2px solid var(--surface);
+}
+
+/* ------------------------------------------------------------------------
+   2. Dropdown Panels (Notifications & User Menu)
+   ------------------------------------------------------------------------ */
+.menu-anchor {
+  position: relative;
+}
+
+.dropdown-panel {
+  position: absolute;
+  inset-block-start: calc(100% + 8px);
+  inset-inline-end: 0;
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-dropdown);
+  z-index: 120;
+  overflow: hidden;
+  animation: dropdownFadeIn 150ms ease-out;
+}
+
+@keyframes dropdownFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Notifications dropdown */
+.notif-dropdown {
+  inline-size: min(380px, 92vw);
+}
+
+.notif-header {
+  padding-block: 12px;
+  padding-inline: var(--space-16);
+  border-block-end: 1px solid var(--border-light);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background-color: var(--surface);
+}
+
+.notif-header-title {
+  margin: 0;
+  font-size: var(--font-size-14);
+  font-weight: 600;
+  color: var(--navy-900);
+}
+
+/* Plain muted text counter (no chip or background pill) */
+.notif-header-badge {
+  font-size: var(--font-size-12);
+  font-weight: 500;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.notif-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-block-size: 340px;
+  overflow-y: auto;
+}
+
+.notif-item {
+  border-block-end: 1px solid var(--border-light);
+  transition: background-color var(--transition);
+}
+
+.notif-item:last-child {
+  border-block-end: none;
+}
+
+.notif-item:hover {
+  background-color: var(--control-hover-bg);
+}
+
+.notif-item.is-unread .notif-subject {
+  font-weight: 600;
+  color: var(--navy-900);
+}
+
+.notif-item-link {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-block: 10px;
+  padding-inline: var(--space-16);
+  text-decoration: none;
+  color: inherit;
+}
+
+.notif-meta-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-8);
+}
+
+.notif-sender {
+  font-weight: 600;
+  font-size: var(--font-size-12);
+  color: var(--navy-900);
+}
+
+.notif-time {
+  font-size: var(--font-size-12);
+  color: var(--text-light);
+  font-variant-numeric: tabular-nums;
+}
+
+.notif-subject {
+  margin: 0;
+  font-size: var(--font-size-14);
+  font-weight: 400;
+  color: var(--text);
+  line-height: 1.35;
+}
+
+.notif-footer {
+  padding-block: 10px;
+  padding-inline: var(--space-16);
+  background-color: var(--surface);
+  border-block-start: 1px solid var(--border-light);
+  text-align: center;
+}
+
+.notif-footer-link {
+  font-size: var(--font-size-12);
+  font-weight: 600;
+  color: var(--primary);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.notif-footer-link:hover {
+  color: var(--secondary);
+  text-decoration: none;
+}
+
+.notif-empty-state {
+  padding-block: var(--space-32);
+  padding-inline: var(--space-16);
+  text-align: center;
+  color: var(--muted);
+  font-size: var(--font-size-14);
+}
+
+/* ------------------------------------------------------------------------
+   3. User Account Menu Trigger & Dropdown
+   Rule: No outlined pill around the user menu. Avatar + name + chevron
+   with no border; subtle background only on hover/focus.
+   ------------------------------------------------------------------------ */
+.user-menu-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-block: 4px;
+  padding-inline: 8px;
+  border-radius: var(--radius-control);
+  border: none;
+  background-color: transparent;
+  cursor: pointer;
+  transition: background-color var(--transition);
+}
+
+.user-menu-btn:hover,
+.user-menu-btn:focus-visible,
+.user-menu-btn[aria-expanded="true"] {
+  background-color: var(--control-hover-bg);
+}
+
+.user-avatar {
+  inline-size: 32px;
+  block-size: 32px;
+  border-radius: var(--radius-full);
+  background-color: var(--primary);
+  color: var(--text-inverse);
+  font-weight: 600;
+  font-size: var(--font-size-12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  letter-spacing: 0.5px;
+}
+
+.user-name {
+  font-size: var(--font-size-14);
+  font-weight: 600;
+  color: var(--navy-900);
+  max-inline-size: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.user-chevron {
+  color: var(--muted);
+  inline-size: 16px;
+  block-size: 16px;
+}
+
+.user-dropdown {
+  inline-size: 220px;
+}
+
+.user-dropdown-header {
+  padding-block: 12px;
+  padding-inline: var(--space-16);
+  border-block-end: 1px solid var(--border-light);
+}
+
+.user-dropdown-name {
+  font-weight: 600;
+  font-size: var(--font-size-14);
+  color: var(--navy-900);
+  margin: 0;
+}
+
+.user-dropdown-role {
+  font-size: var(--font-size-12);
+  color: var(--muted);
+  margin-block-start: 2px;
+}
+
+.user-dropdown-menu {
+  list-style: none;
+  margin: 0;
+  padding-block: 4px;
+  padding-inline: 0;
+}
+
+.user-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  inline-size: 100%;
+  padding-block: 8px;
+  padding-inline: var(--space-16);
+  color: var(--text);
+  font-size: var(--font-size-14);
+  text-decoration: none;
+  text-align: start;
+  transition: background-color var(--transition);
+}
+
+.user-dropdown-item:hover {
+  background-color: var(--control-hover-bg);
+}
+
+.user-dropdown-item svg {
+  inline-size: 18px;
+  block-size: 18px;
+  stroke: currentColor;
+}
+
+.user-dropdown-divider {
+  block-size: 1px;
+  background-color: var(--border-light);
+  margin-block: 4px;
+}
+
+.logout-item {
+  color: var(--danger);
+}
+
+.logout-item:hover {
+  background-color: var(--control-hover-bg);
+}
+
+/* ------------------------------------------------------------------------
+   4. Reusable UI Components
+   ------------------------------------------------------------------------ */
+
+/* Card: 1px solid var(--border), radius 12px, shadow */
+.card {
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  padding: var(--space-24);
+}
+
+/* Hero card modifier: navy gradient, radius 16px, padding 32px */
+.card--hero {
+  background: linear-gradient(135deg, var(--navy-900), var(--primary));
+  color: var(--text-inverse);
+  border: none;
+  border-radius: var(--radius-hero);
+  padding: var(--space-32);
+}
+
+.card--hero h1,
+.card--hero h2,
+.card--hero h3,
+.card--hero p {
+  color: var(--text-inverse);
+}
+
+/* Status component: 8px solid colored dot followed by text, no background, no border */
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--font-size-12);
+  font-weight: 500;
+  color: var(--text);
+  background: none;
+  border: none;
+  padding: 0;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+.status::before {
+  content: "";
+  inline-size: 8px;
+  block-size: 8px;
+  border-radius: 50%;
+  background-color: var(--status-dot, var(--muted));
+  flex-shrink: 0;
+}
+
+.status-success { --status-dot: var(--success); }
+.status-warning { --status-dot: var(--warning); }
+.status-danger  { --status-dot: var(--danger); }
+.status-info    { --status-dot: var(--info); }
+.status-neutral { --status-dot: var(--muted); }
+
+/* Progress Bar Component: 8px track, rounded fill in --aqua, animated width */
+.progress-bar {
+  inline-size: 100%;
+  block-size: 8px;
+  background-color: var(--border);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+  position: relative;
+}
+
+.progress-bar-fill {
+  block-size: 100%;
+  border-radius: var(--radius-full);
+  background-color: var(--bar-color, var(--aqua));
+  transition: inline-size var(--duration-slow) var(--ease-out);
+  will-change: inline-size;
+}
+
+.progress-bar-fill--primary { --bar-color: var(--primary); }
+.progress-bar-fill--success { --bar-color: var(--success); }
+.progress-bar-fill--warning { --bar-color: var(--warning); }
+
+/* Progress Ring Component (SVG circular progress) */
+.progress-ring-container {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.progress-ring {
+  transform: rotate(-90deg);
+  transform-origin: 50% 50%;
+  display: block;
+}
+
+.progress-ring-track {
+  fill: transparent;
+  stroke: var(--border);
+}
+
+.progress-ring-fill {
+  fill: transparent;
+  stroke: var(--ring-color, var(--aqua));
+  stroke-linecap: round;
+  transition: stroke-dashoffset var(--duration-slow) var(--ease-out);
+  will-change: stroke-dashoffset;
+}
+
+.progress-ring--aqua    { --ring-color: var(--aqua); }
+.progress-ring--primary { --ring-color: var(--primary); }
+.progress-ring--success { --ring-color: var(--success); }
+.progress-ring--warning { --ring-color: var(--warning); }
+
+.progress-ring-label {
+  position: absolute;
+  font-family: var(--font-heading);
+  font-size: var(--font-size-12);
+  font-weight: 700;
+  color: var(--navy-900);
+  pointer-events: none;
+}
+
+/* Medal Component: solid circle with rank number, no tinted background */
+.medal {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 28px;
+  block-size: 28px;
+  border-radius: var(--radius-full);
+  color: var(--text-inverse);
+  font-family: var(--font-heading);
+  font-size: var(--font-size-14);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  flex-shrink: 0;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+}
+
+.medal--gold   { background-color: var(--medal-gold); }
+.medal--silver { background-color: var(--medal-silver); }
+.medal--bronze { background-color: var(--medal-bronze); }
+
+.medal--lg {
+  inline-size: 36px;
+  block-size: 36px;
+  font-size: var(--font-size-16);
+}
+
+/* Buttons (40px tall, radius 10px, weight 600) */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-8);
+  block-size: 40px;
+  padding-inline: var(--space-16);
+  border-radius: var(--radius-control);
+  font-family: var(--font-body);
+  font-size: var(--font-size-14);
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  border: 1px solid transparent;
+  transition: background-color var(--transition), border-color var(--transition), color var(--transition);
+  white-space: nowrap;
+}
+
+.btn-primary {
+  background-color: var(--primary);
+  color: var(--text-inverse);
+  border-color: var(--primary);
+}
+
+.btn-primary:hover {
+  background-color: var(--btn-primary-hover);
+  border-color: var(--btn-primary-hover);
+}
+
+.btn-secondary {
+  background-color: var(--surface);
+  color: var(--primary);
+  border-color: var(--border);
+}
+
+.btn-secondary:hover {
+  background-color: var(--control-hover-bg);
+}
+
+.btn-ghost {
+  background-color: transparent;
+  color: var(--text-strong);
+  border-color: transparent;
+}
+
+.btn-ghost:hover {
+  background-color: var(--control-hover-bg);
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Form inputs (40px tall, radius 10px, border matching tokens) */
+.input {
+  inline-size: 100%;
+  block-size: 40px;
+  padding-inline: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  background-color: var(--surface);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: var(--font-size-14);
+  transition: border-color var(--transition);
+}
+
+.input:focus {
+  outline: 2px solid var(--secondary);
+  outline-offset: 2px;
+  border-color: var(--secondary);
+}
+
+.input::placeholder {
+  color: var(--muted);
+}
+
+/* Skeleton loader with subtle shimmer */
+.skeleton {
+  background: linear-gradient(90deg, #EAEFF5 25%, #F4F7FA 50%, #EAEFF5 75%);
+  background-size: 200% 100%;
+  animation: skeletonShimmer 1.5s infinite;
+  border-radius: var(--radius-sm);
+  display: inline-block;
+}
+
+@keyframes skeletonShimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
+    background: #EAEFF5;
+  }
+}
