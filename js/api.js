@@ -11,7 +11,8 @@
  *   403:     Account disabled
  */
 
-import { USE_MOCK, API_BASE_URL, STORAGE_KEYS, LOGIN_ROUTE } from "./config.js";
+import { USE_MOCK, API_BASE_URL, STORAGE_KEYS, LOGIN_ROUTE, MOCK_LATENCY_MS } from "./config.js";
+import { handle as mockServerHandle } from "./mock/mock-server.js";
 
 /**
  * Standardized API Error carrying HTTP status codes and actionable messages.
@@ -20,11 +21,13 @@ export class ApiError extends Error {
   /**
    * @param {number} status - HTTP status code (0 for network drop).
    * @param {string} message - Error description.
+   * @param {object|null} [details=null] - Optional field-level validation details.
    */
-  constructor(status, message) {
+  constructor(status, message, details = null) {
     super(message);
     this.name = "ApiError";
     this.status = status;
+    this.details = details;
   }
 }
 
@@ -70,26 +73,11 @@ async function realLogin(identifier, password) {
 
 /* ---------- Mock Authentication Simulation ---------- */
 
-const MOCK_USERS = [
-  { identifier: "student@aplus.edu",  password: "Student123", user: { id: 1, full_name: "Test Student",    role: "student", department: "Software Engineering" } },
-  { identifier: "doctor@aplus.edu",   password: "Doctor123",  user: { id: 2, full_name: "Test Doctor",     role: "doctor", department: "Software Engineering" } },
-  { identifier: "dept@aplus.edu",     password: "Dept123",    user: { id: 3, full_name: "Test Dept Admin", role: "department_admin", department: "Software Engineering" } },
-  { identifier: "dean@aplus.edu",     password: "Dean123",    user: { id: 4, full_name: "Test Dean",       role: "super_admin", department: "College of Computing" } },
-  { identifier: "disabled@aplus.edu", password: "Disabled123", disabled: true, user: { id: 5, full_name: "Disabled User", role: "student" } },
-];
-
 async function mockLogin(identifier, password) {
-  await new Promise((resolve) => setTimeout(resolve, 500));
-  const found = MOCK_USERS.find(
-    (u) => u.identifier.toLowerCase() === identifier.trim().toLowerCase() && u.password === password
-  );
-  if (!found) throw new ApiError(401, "Invalid credentials");
-  if (found.disabled) throw new ApiError(403, "Account disabled");
-  return {
-    access_token: `mock-token-${found.user.id}-${Date.now()}`,
-    token_type: "bearer",
-    user: found.user,
-  };
+  await new Promise((resolve) => setTimeout(resolve, MOCK_LATENCY_MS));
+  const response = mockServerHandle("POST", "/auth/login", { identifier, password }, null);
+  if (!response.ok) throw new ApiError(response.status, response.error?.detail || "Login failed.");
+  return response.data;
 }
 
 /* ---------- Session Storage Management ---------- */

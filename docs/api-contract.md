@@ -19,12 +19,15 @@ Content-Type: application/json
 
 ### Standard Status Codes
 - `200 OK`: Request succeeded, payload included.
-- `201 Created`: Resource successfully created (e.g. creating a to-do).
+- `201 Created`: Resource successfully created (e.g. creating a to-do, submitting an assignment).
 - `204 No Content`: Resource successfully removed or state updated without content return.
+- `400 Bad Request`: Action cannot be performed (e.g. quiz window closed).
 - `401 Unauthorized`: Token is missing, malformed, or expired. Client automatically redirects to login.
-- `403 Forbidden`: Authenticated user role is not authorized (`role != "student"`).
+- `403 Forbidden`: Authenticated user role is not authorized or resource belongs to another user/doctor.
 - `404 Not Found`: Resource with requested ID does not exist.
+- `409 Conflict`: Duplicate request (e.g. submitting an assignment or attempting a quiz twice).
 - `422 Unprocessable Entity`: Request body or query parameters validation failed.
+- `429 Too Many Requests`: Rating cooldown in effect (RATING_COOLDOWN_DAYS).
 
 ---
 
@@ -86,14 +89,19 @@ Retrieves comprehensive details for a specific course by identifier or course co
   "code": "SE301",
   "title": "Software Architecture & Design Patterns",
   "doctor": "Dr. Ahmed Mansour",
+  "doctor_id": "usr-6",
   "department": "Software Engineering",
   "credit_hours": 3,
   "lectures_count": 24,
   "completed_lectures": 14,
   "schedule": "Sun, Tue 10:00 AM - 11:30 AM",
-  "room": "Hall 3B"
+  "room": "Hall 3B",
+  "lectures": [
+    { "id": "lec-a1", "number": 1, "title": "Introduction", "date": "2026-10-13", "material_url": null }
+  ]
 }
 ```
+- `doctor_id` supports student ratings. `lectures` is ordered by lecture number and includes the course's lecture metadata.
 - **Error `404 Not Found`:** Course ID not found.
 
 ---
@@ -113,13 +121,35 @@ Retrieves all student assignments, submission records, and AI-generated prelimin
     "due_date": "2026-10-30T23:59:00Z",
     "status": "submitted",
     "submitted_at": "2026-10-25T14:20:00Z",
+    "is_late": false,
     "ai_feedback": "Clean separation of bounded contexts. Notice: retry policies should include exponential backoff.",
     "final_grade": null,
     "max_grade": 20
   }
 ]
 ```
-> **Note on grading:** Students receive instant preliminary AI feedback upon submission. The `final_grade` is populated only when explicitly assigned and approved by the course doctor.
+> **Security Rule on AI Evaluation:** Students receive deterministic textual feedback (`ai_feedback`). The numerical opinion score (`ai_score_out_of_10`) is strictly confidential to the course doctor and is NEVER transmitted to student endpoints.
+
+#### Submit Assignment
+- **Method / Path:** `POST /student/assignments/{assignment_id}/submit`
+- **Request Body:**
+```json
+{
+  "content": "Attached repository and architecture documentation for the Hexagonal refactoring."
+}
+```
+- **Response `201 Created`:**
+```json
+{
+  "id": "sub-101",
+  "assignment_id": "asg-a1",
+  "submitted_at": "2026-10-30T21:00:00Z",
+  "is_late": false,
+  "ai_feedback": "Strong separation of domain logic from infrastructure..."
+}
+```
+- **Error `409 Conflict`:** If student attempts to submit an assignment more than once.
+- **Error `422 Unprocessable Entity`:** If `content` is empty.
 
 ---
 
@@ -159,7 +189,7 @@ Retrieves aggregate attendance ratios, absence counts, and course-by-course warn
   "attended_lectures": 62,
   "absence_count": 6,
   "grade_penalty_risk": false,
-  "warning_threshold": 4,
+  "warning_threshold": 2,
   "courses": [
     {
       "course_id": "cs304",
@@ -171,9 +201,20 @@ Retrieves aggregate attendance ratios, absence counts, and course-by-course warn
       "percentage": 81.25,
       "penalty_status": "warning"
     }
+  ],
+  "history": [
+    {
+      "session_id": "ses-a3",
+      "course_id": "crs-a",
+      "course_code": "SE301",
+      "lecture_title": "Event-Driven Architecture",
+      "date": "2026-10-20",
+      "status": "present"
+    }
   ]
 }
 ```
+`history` is limited to the authenticated student's enrolled courses and includes the per-session attendance status.
 
 ---
 
@@ -235,8 +276,8 @@ Points reset automatically on the 1st of every calendar month.
   "current_points": 1420,
   "department_rank": 2,
   "department_name": "Software Engineering",
-  "current_month": "October 2026",
-  "points_reset_date": "2026-11-01T00:00:00Z",
+  "current_month": "2026-10",
+  "points_reset_date": "2026-11-01",
   "monthly_top_3": [
     { "rank": 1, "name": "Yara Ibrahim", "points": 1560, "initials": "YI", "department": "Software Engineering" },
     { "rank": 2, "name": "Test Student", "points": 1420, "initials": "TS", "department": "Software Engineering", "is_current_user": true },
@@ -245,9 +286,13 @@ Points reset automatically on the 1st of every calendar month.
   "breakdown": [
     { "source": "Assignment early submissions", "points": 400 },
     { "source": "Perfect lecture attendance streak", "points": 320 }
+  ],
+  "ledger": [
+    { "source": "submission", "points": 10, "description": "On-time assignment submission", "created_at": "2026-10-28T12:00:00Z" }
   ]
 }
 ```
+`ledger` contains the authenticated student's current-month point entries, newest first. `points_reset_date` is a calendar date, not a timestamp.
 
 ---
 
@@ -340,3 +385,336 @@ Retrieves curriculum milestone tracks, skill progress percentages, and sequenced
   "unread_count": 3
 }
 ```
+
+### 2.11 Anonymous Student Ratings
+- **Method / Path:** `POST /student/ratings`
+- **Request Body:**
+```json
+{
+  "target_type": "lecture",
+  "target_id": "lec-a3",
+  "course_id": "crs-a",
+  "score": 5,
+  "comment": "Clear examples and a useful summary."
+}
+```
+- `target_type` is `lecture` or `doctor`; `score` is an integer from 1 through 5.
+- The target must belong to a course the student is enrolled in. Lecture targets must match the specified course; doctor targets must teach that course.
+- A student cannot rate the same target again within `RATING_COOLDOWN_DAYS` (default 7); the server returns `429 Too Many Requests`.
+- **Response `201 Created`:** The created rating for the requesting student. Student identities are never included in the doctor's aggregate ratings response.
+
+---
+
+## 3. Doctor Domain REST API Contract
+
+All doctor endpoints reside under the `/doctor/` URI namespace and require `Authorization: Bearer <jwt_access_token>` with role `doctor`.
+
+### 3.1 Doctor Dashboard Summary
+Retrieves metrics requiring immediate attention (pending grading, risk of absence penalty, upcoming deadlines, average rating).
+
+- **Method / Path:** `GET /doctor/dashboard/summary`
+- **Response `200 OK`:**
+```json
+{
+  "active_courses_count": 2,
+  "pending_submissions_to_grade": 14,
+  "students_at_absence_risk": 3,
+  "upcoming_deadlines": [
+    { "title": "SE301 - Microservices Architecture Spec", "due": "2026-11-04" },
+    { "title": "SE304 - Process Scheduling Implementation", "due": "2026-11-08" }
+  ],
+  "average_student_rating": 4.8,
+  "total_enrolled_students": 115
+}
+```
+
+---
+
+### 3.2 Doctor Courses
+Retrieves assigned courses and syllabus progress.
+
+- **Method / Path:** `GET /doctor/courses`
+- **Response `200 OK`:**
+```json
+[
+  {
+    "id": "c-se301",
+    "code": "SE301",
+    "title": "Software Architecture & Design Patterns",
+    "department": "Software Engineering",
+    "credit_hours": 3,
+    "enrolled_count": 68,
+    "lectures_count": 12,
+    "completed_lectures": 8,
+    "schedule": "Sun & Tue 10:00 - 11:30 AM",
+    "room": "Hall 302"
+  }
+]
+```
+
+- **Method / Path:** `GET /doctor/courses/{course_id}`
+- **Response `200 OK`:** Single course object matching the structure above, including the ordered `lectures` array (`id`, `number`, `title`, `date`, `material_url`).
+
+---
+
+### 3.3 Doctor Assignments & Grading (US-03)
+Retrieves student submissions with AI 10-point preliminary evaluation visible only to the doctor.
+
+- **Method / Path:** `GET /doctor/assignments`
+- **Response `200 OK`:**
+```json
+[
+  {
+    "id": "asg-doc-01",
+    "course_code": "SE301",
+    "title": "Assignment 2: Event-Driven Architecture Spec",
+    "due_date": "2026-11-04T23:59:00Z",
+    "total_submissions": 45,
+    "pending_submissions": 6,
+    "graded_submissions": 39,
+    "max_grade": 100,
+    "submissions": [
+      {
+        "id": "sub-101",
+        "student_id": 101,
+        "student_name": "Karim Adel",
+        "content": "The student's submitted assignment text.",
+        "submitted_at": "2026-10-27T16:20:00Z",
+        "ai_evaluation": {
+          "score_out_of_10": 8.8,
+          "feedback_summary": "Solid event envelope design; Kafka topic partitioning is well articulated.",
+          "confidence": 0.94
+        },
+        "doctor_final_grade": null,
+        "doctor_feedback": null
+      }
+    ]
+  }
+]
+```
+
+#### Uncorrected Submissions Count (Sidebar Badge)
+- **Method / Path:** `GET /doctor/assignments/pending-count`
+- **Response `200 OK`:**
+```json
+{
+  "pending_count": 14
+}
+```
+
+#### Submit Doctor Final Grade
+- **Method / Path:** `POST /doctor/submissions/{submission_id}/grade`
+- **Request Body:**
+```json
+{
+  "final_grade": 92,
+  "doctor_feedback": "Excellent trade-off analysis between pub/sub and synchronous RPC."
+}
+```
+- **Response `200 OK`:** Updated submission record.
+
+---
+
+### 3.4 Quizzes & Exam Management
+- **Method / Path:** `GET /doctor/quizzes`
+- **Response `200 OK`:**
+```json
+[
+  {
+    "id": "quiz-doc-01",
+    "course_code": "SE301",
+    "title": "Quiz 2: Clean Architecture & SOLID",
+    "duration_minutes": 20,
+    "scheduled_date": "2026-11-02T10:00:00Z",
+    "status": "scheduled",
+    "total_enrolled": 68,
+    "completed_count": 0,
+    "average_score": null
+  }
+]
+```
+- **Method / Path:** `GET /doctor/quizzes/{quiz_id}/results`
+- **Response `200 OK`:**
+```json
+{
+  "attempts": [
+    { "student_name": "Karim Adel", "submitted_at": "2026-10-29T12:00:00Z", "score": 4, "total": 5 }
+  ]
+}
+```
+The route is doctor-only and is limited to quizzes in the authenticated doctor's courses.
+
+---
+
+### 3.5 Attendance Sessions
+- **Method / Path:** `GET /doctor/attendance`
+- **Response `200 OK`:** List of attendance sessions.
+
+- **Method / Path:** `POST /doctor/attendance`
+- **Request Body:**
+```json
+{
+  "course_id": "crs-a",
+  "lecture_id": "lec-a3",
+  "date": "2026-10-30",
+  "method": "manual",
+  "records": [
+    { "student_id": "usr-1", "status": "present" },
+    { "student_id": "usr-2", "status": "absent" }
+  ]
+}
+```
+- `status` must be `present`, `absent`, or `excused`; every student must be enrolled in the course, and each student may appear once per session.
+- **Response `201 Created`:** `{ "session_id": "...", "recorded": 2 }`. Invalid records return `422`; out-of-scope students return `403`. Crossing `ABSENCE_WARNING_THRESHOLD` creates one automatic warning message per student/course.
+
+---
+
+### 3.6 Student Roster & Bonus Points
+- **Method / Path:** `GET /doctor/students?course=SE301`
+- **Response `200 OK`:**
+```json
+[
+  {
+    "student_id": 101,
+    "name": "Karim Adel",
+    "course_code": "SE301",
+    "attendance_rate": 93.3,
+    "absences_count": 1,
+    "at_penalty_risk": false,
+    "current_grade": 94,
+    "bonus_points_granted": 50,
+    "current_month_points": 110
+  }
+]
+```
+
+#### Grant Bonus Points (Feeds Monthly Top-3)
+- **Method / Path:** `POST /doctor/students/{student_id}/bonus`
+- **Request Body:**
+```json
+{
+  "points": 50,
+  "reason": "Outstanding defense in class debate on Microkernel pattern"
+}
+```
+- **Response `200 OK`:**
+```json
+{
+  "success": true,
+  "student_id": 101,
+  "points_granted": 50,
+  "new_total_bonus": 100
+}
+```
+
+---
+
+### 3.7 Messages & Alerts Outbox
+- **Method / Path:** `GET /doctor/messages`
+- **Response `200 OK`:** List of sent doctor notices and absence alerts.
+
+- **Method / Path:** `POST /doctor/messages`
+- **Request Body:**
+```json
+{
+  "course_id": "crs-a",
+  "recipient_ids": ["usr-1"],
+  "type": "notice",
+  "subject": "Office Hours Moved to Wednesday 1 PM",
+  "body": "Due to department council meetings, office hours this week are rescheduled to Wednesday at 1:00 PM."
+}
+```
+- Omit `recipient_ids` to notify all enrolled students. Explicit recipients must all be enrolled in the course. Supported types are `warning`, `notice`, `suggestion`, and `system`.
+- **Response `201 Created`:** `{ "sent_count": 1, "message_ids": ["..."] }`; each message is delivered unread to the recipient's inbox.
+
+---
+
+### 3.8 Anonymous Course & Doctor Ratings
+Aggregated student ratings and feedback without student identities.
+
+- **Method / Path:** `GET /doctor/ratings`
+- **Response `200 OK`:**
+```json
+{
+  "overall_score": 4.8,
+  "total_evaluations": 52,
+  "breakdown": [
+    { "metric": "Clarity of Explanation", "score": 4.9 },
+    { "metric": "Course Materials & Slides", "score": 4.7 },
+    { "metric": "Fairness of Grading", "score": 4.8 },
+    { "metric": "Responsiveness to Questions", "score": 4.8 }
+  ],
+  "anonymous_comments": [
+    {
+      "course_code": "SE301",
+      "date": "2026-10-24",
+      "comment": "The real-world microservices case studies made complex patterns very clear."
+    }
+  ]
+}
+```
+
+### 3.9 Doctor Course Content Management
+- `POST /doctor/assignments` creates an assignment in an owned course; `PATCH /doctor/assignments/{assignment_id}` updates it.
+- `POST /doctor/lectures` creates a lecture in an owned course; `PATCH /doctor/lectures/{lecture_id}` updates it.
+- `POST /doctor/quizzes` creates a quiz in an owned course; `PATCH /doctor/quizzes/{quiz_id}` updates it.
+- Every write is scoped to the authenticated doctor's own courses. Students enrolled in those courses can see the course content; other students cannot.
+
+---
+
+## 4. Complete Mock Route Inventory
+
+The mock server currently handles 44 routes, including the public `POST /auth/login` route. All other routes require authentication; student and doctor routes are role-restricted. `{...}` denotes a path parameter.
+
+| Role | Method | Path |
+|---|---|---|
+| Public | POST | `/auth/login` |
+| Student | GET | `/student/dashboard/summary` |
+| Student | GET | `/student/courses` |
+| Student | GET | `/student/courses/{course_id}` |
+| Student | GET | `/student/assignments` |
+| Student | GET | `/student/assignments/{assignment_id}` |
+| Student | POST | `/student/assignments/{assignment_id}/submit` |
+| Student | GET | `/student/quizzes` |
+| Student | GET | `/student/quizzes/{quiz_id}` |
+| Student | POST | `/student/quizzes/{quiz_id}/attempt` |
+| Student | GET | `/student/attendance` |
+| Student | GET | `/student/todos` |
+| Student | POST | `/student/todos` |
+| Student | PATCH | `/student/todos/{todo_id}` |
+| Student | DELETE | `/student/todos/{todo_id}` |
+| Student | GET | `/student/points` |
+| Student | GET | `/student/roadmaps` |
+| Student | GET | `/student/inbox` |
+| Student | GET | `/student/inbox/unread-count` |
+| Student | PUT | `/student/inbox/{message_id}/read` |
+| Student | GET | `/student/profile` |
+| Student | POST | `/student/ratings` |
+| Doctor | GET | `/doctor/dashboard/summary` |
+| Doctor | GET | `/doctor/courses` |
+| Doctor | GET | `/doctor/courses/{course_id}` |
+| Doctor | GET | `/doctor/assignments` |
+| Doctor | GET | `/doctor/assignments/pending-count` |
+| Doctor | POST | `/doctor/assignments` |
+| Doctor | PATCH | `/doctor/assignments/{assignment_id}` |
+| Doctor | POST | `/doctor/lectures` |
+| Doctor | PATCH | `/doctor/lectures/{lecture_id}` |
+| Doctor | POST | `/doctor/submissions/{submission_id}/grade` |
+| Doctor | GET | `/doctor/quizzes` |
+| Doctor | GET | `/doctor/quizzes/{quiz_id}/results` |
+| Doctor | POST | `/doctor/quizzes` |
+| Doctor | PATCH | `/doctor/quizzes/{quiz_id}` |
+| Doctor | GET | `/doctor/attendance` |
+| Doctor | POST | `/doctor/attendance` |
+| Doctor | GET | `/doctor/students` |
+| Doctor | POST | `/doctor/students/{student_id}/bonus` |
+| Doctor | GET | `/doctor/messages` |
+| Doctor | POST | `/doctor/messages` |
+| Doctor | GET | `/doctor/ratings` |
+| Doctor | GET | `/doctor/profile` |
+
+### Integration Points
+- `js/mock/mock-ai.js` currently supplies deterministic assignment feedback and an AI opinion score. Student responses include feedback only; the doctor assignment response is the only route exposing the AI opinion score.
+- Replace `evaluateSubmission()` with the future n8n integration without changing student or doctor API response contracts.
+- `getNow()` and `getCurrentMonth()` in `js/core/clock.js` are the mock time boundary for deadlines, attendance warning timestamps, rating cooldowns, and monthly points. The FastAPI backend must apply equivalent rules using server time.
+- Student and doctor page API modules call the shared `request()` function only; the mock database remains an implementation detail of the mock server.

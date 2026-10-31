@@ -15,9 +15,12 @@
 import { BRANDING } from "../config.js";
 import { STRINGS } from "../config/strings.js";
 import { STUDENT_NAV_ITEMS } from "../config/student-nav.js";
+import { DOCTOR_NAV_ITEMS } from "../config/doctor-nav.js";
 import { getCurrentUser, logout } from "../api.js";
 import { getUnreadCount, getInbox } from "../api/student-api.js";
+import { getDoctorPendingSubmissionsCount } from "../api/doctor-api.js";
 import { requireAuth } from "./auth-guard.js";
+import { listenForChanges } from "../mock/mock-db.js";
 
 /**
  * Initializes and mounts the shared navigation shell.
@@ -50,6 +53,7 @@ export function initLayout({ role = "student", navItems = [], activePage = "", p
 
   const pageTitle = currentNavItem ? currentNavItem.label : explicitPageTitle || branding.wordmark;
   const currentUser = user || getCurrentUser() || { full_name: "User", role };
+  const profilePrefix = role === "doctor" ? STRINGS.profile.doctorPrefix : STRINGS.profile.studentPrefix;
 
   // 1. Render layout DOM scaffold
   shellEl.className = "app-shell";
@@ -98,7 +102,7 @@ export function initLayout({ role = "student", navItems = [], activePage = "", p
 
       <div class="sidebar-footer">
         <a href="profile.html" class="sidebar-profile-link" ${activePage === "profile" ? 'aria-current="page"' : ""}>
-          <span class="sidebar-profile-name" title="${escapeHtml(currentUser.full_name)}">${STRINGS.profile.prefix} ${escapeHtml(currentUser.full_name)}</span>
+          <span class="sidebar-profile-name" title="${escapeHtml(currentUser.full_name)}">${profilePrefix} ${escapeHtml(currentUser.full_name)}</span>
         </a>
       </div>
     </aside>
@@ -137,7 +141,7 @@ export function initLayout({ role = "student", navItems = [], activePage = "", p
                 <li class="notif-empty-state">${STRINGS.topbar.noNotifications}</li>
               </ul>
               <div class="notif-footer">
-                <a href="inbox.html" class="notif-footer-link">${STRINGS.topbar.viewAllMessages}</a>
+                <a href="${role === 'doctor' ? 'messages.html' : 'inbox.html'}" class="notif-footer-link">${role === 'doctor' ? STRINGS.topbar.viewAllDoctorMessages : STRINGS.topbar.viewAllMessages}</a>
               </div>
             </div>
           </div>
@@ -210,8 +214,14 @@ export function initLayout({ role = "student", navItems = [], activePage = "", p
   attachLogoutHandler();
 
   // 3. Load Dynamic Data (Unread Count & Notifications)
-  loadDynamicBadges();
-  loadNotificationDropdown();
+  loadDynamicBadges(role);
+  loadNotificationDropdown(role);
+
+  // 4. Cross-tab synchronization: refresh badges & notifications when DB updates
+  listenForChanges(() => {
+    loadDynamicBadges(role);
+    loadNotificationDropdown(role);
+  });
 }
 
 /**
@@ -258,6 +268,37 @@ export function initStudentPage(pageId) {
   initLayout({
     role: "student",
     navItems: STUDENT_NAV_ITEMS,
+    activePage: pageId,
+    pageTitle: nonNavigationPages[pageId] || "",
+    user,
+    branding: BRANDING,
+  });
+}
+
+/**
+ * High-level initialization function for all doctor pages.
+ * Enforces doctor role authentication and builds the shell layout without injecting any placeholder cards.
+ *
+ * @param {string} pageId - Navigation ID or supported doctor page ID.
+ */
+export function initDoctorPage(pageId) {
+  // Permit profile because it intentionally has no sidebar navigation item.
+  const validIds = DOCTOR_NAV_ITEMS.map((item) => item.id);
+  const nonNavigationPages = { profile: STRINGS.pages.profile };
+  if (!validIds.includes(pageId) && !nonNavigationPages[pageId]) {
+    const errorMsg = `[A Plus Shell] Invalid doctor page ID: "${pageId}". Expected one of: [${validIds.join(", ")}]`;
+    console.error(errorMsg);
+    throw new Error(errorMsg);
+  }
+
+  // 1. Guard route: redirect if not authenticated doctor
+  const user = requireAuth({ allowedRoles: ["doctor"], redirectUrl: "../index.html" });
+  if (!user) return; // Halt if redirect triggered
+
+  // 2. Initialize layout with empty page-content
+  initLayout({
+    role: "doctor",
+    navItems: DOCTOR_NAV_ITEMS,
     activePage: pageId,
     pageTitle: nonNavigationPages[pageId] || "",
     user,
@@ -384,8 +425,24 @@ function attachLogoutHandler() {
   });
 }
 
-/** Loads unread inbox count and updates the sidebar badge and bell dot */
-async function loadDynamicBadges() {
+/** Loads dynamic sidebar badges and bell indicators depending on the active user role */
+async function loadDynamicBadges(role = "student") {
+  if (role === "doctor") {
+    try {
+      const res = await getDoctorPendingSubmissionsCount();
+      const count = res?.pending_count || 0;
+      const assignmentsBadge = document.getElementById("nav-doctor-assignments-badge");
+      if (assignmentsBadge) {
+        assignmentsBadge.textContent = String(count);
+        assignmentsBadge.hidden = count === 0;
+      }
+    } catch (err) {
+      console.warn("[Layout] Failed to load doctor pending reviews count:", err);
+    }
+    return;
+  }
+
+  // Student role: load unread inbox count
   try {
     const res = await getUnreadCount();
     const count = res?.unread_count || 0;
@@ -412,10 +469,10 @@ async function loadDynamicBadges() {
   }
 }
 
-/** Fetches latest 5 inbox messages and renders inside the bell dropdown */
-async function loadNotificationDropdown() {
+/** Fetches latest notifications and renders inside the bell dropdown */
+async function loadNotificationDropdown(role = "student") {
   try {
-    const messages = await getInbox();
+    const messages = role === "doctor" ? [] : await getInbox();
     const listEl = document.getElementById("notif-list");
     if (!listEl) return;
 
@@ -424,7 +481,7 @@ async function loadNotificationDropdown() {
       return;
     }
 
-    // Display the latest 5 messages
+    // Display the latest five items, linking directly to the selected inbox message.
     const top5 = messages.slice(0, 5);
 
     // Map notification types to .status variants
@@ -435,27 +492,33 @@ async function loadNotificationDropdown() {
       system: "neutral",
     };
 
-    listEl.innerHTML = top5
-      .map((msg) => {
-        const typeTag = STRINGS.inboxTypes[msg.type] || msg.type;
-        const statusVariant = typeStatusMap[msg.type] || "neutral";
-        const formattedDate = formatTime(msg.created_at);
-        const unreadClass = msg.is_read ? "" : "is-unread";
-
-        return `
-        <li class="notif-item ${unreadClass}">
-          <a href="inbox.html" class="notif-item-link">
-            <div class="notif-meta-row">
-              <span class="notif-sender">${escapeHtml(msg.sender)}</span>
-              <time class="notif-time">${formattedDate}</time>
-            </div>
-            <p class="notif-subject">${escapeHtml(msg.subject)}</p>
-            <span class="status status-${statusVariant}">${typeTag}</span>
-          </a>
-        </li>
-      `;
-      })
-      .join("");
+    listEl.replaceChildren();
+    top5.forEach((msg) => {
+      const item = document.createElement("li");
+      item.className = `notif-item${msg.is_read ? "" : " is-unread"}`;
+      const link = document.createElement("a");
+      link.className = "notif-item-link";
+      link.href = `inbox.html?id=${encodeURIComponent(msg.id)}`;
+      const meta = document.createElement("div");
+      meta.className = "notif-meta-row";
+      const sender = document.createElement("span");
+      sender.className = "notif-sender";
+      sender.textContent = msg.sender_name || msg.sender || "System";
+      const date = document.createElement("time");
+      date.className = "notif-time";
+      date.dateTime = msg.created_at;
+      date.textContent = formatTime(msg.created_at);
+      meta.append(sender, date);
+      const subject = document.createElement("p");
+      subject.className = "notif-subject";
+      subject.textContent = msg.subject;
+      const type = document.createElement("span");
+      type.className = `status status-${typeStatusMap[msg.type] || "neutral"}`;
+      type.textContent = STRINGS.inboxTypes[msg.type] || msg.type;
+      link.append(meta, subject, type);
+      item.append(link);
+      listEl.append(item);
+    });
   } catch (err) {
     console.warn("[Layout] Failed to populate notification bell messages:", err);
   }

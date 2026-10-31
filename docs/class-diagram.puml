@@ -1,0 +1,23 @@
+@startuml
+title "A Plus Academy"
+class Super_Admin{
+
+
+}
+class Department_Admin{}
+class Doctor {
+
+}
+class Student {
+
+Student_id : int 
+Student_Code : int 
+Academic_Year : int 
+Department_id : int 
+
+}
+class n8n_Automation{}
+
+
+
+@enduml

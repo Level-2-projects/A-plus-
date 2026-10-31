@@ -1,0 +1,107 @@
+@startuml
+title A Plus Academy 
+left to right direction
+
+actor "Super Admin" as SA
+actor "Department Admin" as Dep_A
+actor "Doctor"as Dr
+actor "Student"as Stu
+actor "n8n Automation" as AI
+
+rectangle "A Plus Academy" {
+
+package " Administration " {
+
+usecase "	Manage Departments " as SA1
+usecase " Manage Users " as SA2
+usecase " Assign Department Admins " as SA3
+
+}
+
+package " CO-Admin " {
+
+usecase " Manage Department " as Dep_A1
+usecase " Manage Students " as Dep_A2
+usecase " Manage Doctors " as Dep_A3
+usecase " Review Market Content " as Dep_A4
+usecase " View Monthly Ranking " as Dep_A5
+
+}
+
+package " Academic Activities " {
+
+usecase " Manage Course Materials " as Dr1
+usecase " Create Quiz " as Dr2
+usecase " Create Assignment " as Dr3
+usecase " Record Attendance " as Dr4
+usecase " Grade Submissions " as Dr5
+usecase " Publish Market Content " as Dr6
+
+}
+
+package " Receiver " {
+
+usecase " View Courses " as Stu1
+usecase " Access Lectures " as Stu2
+usecase " Solve Quiz " as Stu3
+usecase " Submit Assignment " as Stu4
+usecase " View Attendance " as Stu5
+usecase " View Grades " as Stu6
+usecase " View Dashboard " as Stu7
+usecase " View Market " as Stu8
+usecase " Upload File " as Stu9
+
+}
+
+package " Assistant " {
+
+usecase " Send Absence Warning " as AI1
+usecase " Send Deadline Reminder " as AI2
+usecase " Send Weekly Summary " as AI3
+usecase " AI Feedback " as AI4
+
+}
+
+
+SA ..> SA1 
+SA ..> SA2 
+SA ..> SA3 
+
+Dep_A ..> Dep_A1 
+Dep_A ..> Dep_A2 
+Dep_A ..> Dep_A3 
+Dep_A ..> Dep_A4 
+Dep_A ..> Dep_A5
+
+Dr ..> Dr1 
+Dr ..> Dr2 
+Dr ..> Dr3 
+Dr ..> Dr4 
+Dr ..> Dr5 
+Dr ..> Dr6 
+
+Stu ..> Stu1 
+Stu ..> Stu2 
+Stu ..> Stu3 
+Stu ..> Stu4 
+Stu ..> Stu5 
+Stu ..> Stu6 
+Stu ..> Stu7 
+Stu ..> Stu8 
+Stu ..> Stu9
+
+AI ..> AI1 
+AI ..> AI2 
+AI ..> AI3 
+AI ..> AI4 
+
+left to right direction
+skinparam backgroundColor White 
+skinparam defaultFontName Arial
+skinparam defaultFontSize 14
+skinparam defaultFontColor Black 
+skinparam usecaseBorderColor Black 
+skinparam usecaseBackgroundColor White 
+skinparam actor BorderColor Black
+
+@enduml

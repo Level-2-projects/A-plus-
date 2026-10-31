@@ -79,6 +79,11 @@ export function initCountUp(root = document) {
   const elements = root.querySelectorAll("[data-count-up]");
   if (elements.length === 0) return null;
 
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    elements.forEach((element) => animateCount(element));
+    return null;
+  }
+
   // Fallback for environments lacking IntersectionObserver
   if (!("IntersectionObserver" in window)) {
     elements.forEach((el) => animateCount(el));

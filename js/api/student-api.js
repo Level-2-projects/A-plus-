@@ -1,15 +1,12 @@
 /**
  * js/api/student-api.js – Student domain API client.
- * Dispatches requests to either the live FastAPI backend or the in-memory mock store.
- * Depends on: js/config.js, js/core/http.js, js/mock/student-mock-data.js
+ * Dispatches all student requests through request() in js/core/http.js.
+ * Strictly decoupled from database/mock implementation details.
+ *
+ * Depends on: js/core/http.js
  */
 
-import { USE_MOCK } from "../config.js";
 import { request } from "../core/http.js";
-import { mockDataStore } from "../mock/student-mock-data.js";
-
-/** Small artificial network delay for mock testing */
-const simulateDelay = (ms = 120) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /* ---------- 1. Dashboard Summary ---------- */
 
@@ -23,14 +20,11 @@ const simulateDelay = (ms = 120) => new Promise((resolve) => setTimeout(resolve,
  *   attendance_rate: number,
  *   points: number,
  *   rank: number,
+ *   department: string,
  *   unread_messages: number
  * }>}
  */
 export async function getDashboardSummary() {
-  if (USE_MOCK) {
-    await simulateDelay();
-    return mockDataStore.getDashboardSummary();
-  }
   return request("/student/dashboard/summary");
 }
 
@@ -53,10 +47,6 @@ export async function getDashboardSummary() {
  * }>>}
  */
 export async function getCourses() {
-  if (USE_MOCK) {
-    await simulateDelay();
-    return mockDataStore.getCourses();
-  }
   return request("/student/courses");
 }
 
@@ -74,14 +64,12 @@ export async function getCourses() {
  *   lectures_count: number,
  *   completed_lectures: number,
  *   schedule: string,
- *   room: string
+ *   room: string,
+ *   doctor_id: string,
+ *   lectures: Array<{ id: string, number: number, title: string, date: string, material_url: string|null }>
  * }|null>}
  */
 export async function getCourse(id) {
-  if (USE_MOCK) {
-    await simulateDelay();
-    return mockDataStore.getCourse(id);
-  }
   return request(`/student/courses/${encodeURIComponent(id)}`);
 }
 
@@ -95,20 +83,50 @@ export async function getCourse(id) {
  *   course_id: string,
  *   course_code: string,
  *   title: string,
+ *   description: string,
  *   due_date: string,
- *   status: 'pending'|'submitted'|'graded',
+ *   status: 'pending'|'submitted'|'graded'|'missed',
  *   submitted_at: string|null,
+ *   is_late: boolean|null,
  *   ai_feedback: string|null,
  *   final_grade: number|null,
+ *   doctor_feedback: string|null,
+ *   graded_at: string|null,
  *   max_grade: number
  * }>>}
  */
 export async function getAssignments() {
-  if (USE_MOCK) {
-    await simulateDelay();
-    return mockDataStore.getAssignments();
-  }
   return request("/student/assignments");
+}
+
+/**
+ * Retrieves a single assignment by ID.
+ *
+ * @param {string} id - Assignment ID.
+ * @returns {Promise<object>}
+ */
+export async function getAssignment(id) {
+  return request(`/student/assignments/${encodeURIComponent(id)}`);
+}
+
+/**
+ * Submits an assignment solution (once per assignment).
+ *
+ * @param {string} assignmentId
+ * @param {{ content: string }} submissionData
+ * @returns {Promise<{
+ *   id: string,
+ *   assignment_id: string,
+ *   submitted_at: string,
+ *   is_late: boolean,
+ *   ai_feedback: string
+ * }>}
+ */
+export async function submitAssignment(assignmentId, submissionData) {
+  return request(`/student/assignments/${encodeURIComponent(assignmentId)}/submit`, {
+    method: "POST",
+    body: submissionData,
+  });
 }
 
 /* ---------- 4. Quizzes ---------- */
@@ -122,19 +140,40 @@ export async function getAssignments() {
  *   title: string,
  *   duration_minutes: number,
  *   questions_count: number,
- *   status: 'upcoming'|'completed'|'missed',
+ *   status: 'upcoming'|'available'|'completed'|'missed',
  *   available_from: string,
  *   available_to: string,
  *   score: number|null,
- *   total_score: number
+ *   total_score: number,
+ *   submitted_at: string|null
  * }>>}
  */
 export async function getQuizzes() {
-  if (USE_MOCK) {
-    await simulateDelay();
-    return mockDataStore.getQuizzes();
-  }
   return request("/student/quizzes");
+}
+
+/**
+ * Retrieves a single quiz by ID (including questions if currently active and unattempted).
+ *
+ * @param {string} id - Quiz ID.
+ * @returns {Promise<object>}
+ */
+export async function getQuiz(id) {
+  return request(`/student/quizzes/${encodeURIComponent(id)}`);
+}
+
+/**
+ * Submits an attempt for a quiz.
+ *
+ * @param {string} quizId
+ * @param {{ answers: number[] }} attemptData - Array of chosen answer option indices.
+ * @returns {Promise<{ id: string, score: number, total: number, submitted_at: string }>}
+ */
+export async function attemptQuiz(quizId, attemptData) {
+  return request(`/student/quizzes/${encodeURIComponent(quizId)}/attempt`, {
+    method: "POST",
+    body: attemptData,
+  });
 }
 
 /* ---------- 5. Attendance ---------- */
@@ -158,14 +197,11 @@ export async function getQuizzes() {
  *     absences: number,
  *     percentage: number,
  *     penalty_status: 'normal'|'notice'|'warning'|'penalty'
- *   }>
+ *   }>,
+ *   history: Array<{ session_id: string, course_id: string, course_code: string, lecture_title: string, date: string, status: 'present'|'absent'|'excused' }>
  * }>}
  */
 export async function getAttendance() {
-  if (USE_MOCK) {
-    await simulateDelay();
-    return mockDataStore.getAttendance();
-  }
   return request("/student/attendance");
 }
 
@@ -185,10 +221,6 @@ export async function getAttendance() {
  * }>>}
  */
 export async function getTodos() {
-  if (USE_MOCK) {
-    await simulateDelay();
-    return mockDataStore.getTodos();
-  }
   return request("/student/todos");
 }
 
@@ -196,21 +228,9 @@ export async function getTodos() {
  * Creates a new personal to-do item.
  *
  * @param {{ title: string, course_code?: string, due_date?: string, priority?: 'high'|'medium'|'low' }} todoData
- * @returns {Promise<{
- *   id: string,
- *   title: string,
- *   course_code?: string,
- *   due_date: string,
- *   priority: 'high'|'medium'|'low',
- *   completed: boolean,
- *   created_at: string
- * }>}
+ * @returns {Promise<object>}
  */
 export async function createTodo(todoData) {
-  if (USE_MOCK) {
-    await simulateDelay();
-    return mockDataStore.addTodo(todoData);
-  }
   return request("/student/todos", {
     method: "POST",
     body: todoData,
@@ -222,13 +242,9 @@ export async function createTodo(todoData) {
  *
  * @param {string} id - Task ID.
  * @param {object} updates - Fields to modify.
- * @returns {Promise<object|null>}
+ * @returns {Promise<object>}
  */
 export async function updateTodo(id, updates) {
-  if (USE_MOCK) {
-    await simulateDelay();
-    return mockDataStore.updateTodo(id, updates);
-  }
   return request(`/student/todos/${encodeURIComponent(id)}`, {
     method: "PATCH",
     body: updates,
@@ -242,10 +258,6 @@ export async function updateTodo(id, updates) {
  * @returns {Promise<boolean>}
  */
 export async function deleteTodo(id) {
-  if (USE_MOCK) {
-    await simulateDelay();
-    return mockDataStore.deleteTodo(id);
-  }
   await request(`/student/todos/${encodeURIComponent(id)}`, {
     method: "DELETE",
   });
@@ -271,14 +283,11 @@ export async function deleteTodo(id) {
  *     department: string,
  *     is_current_user?: boolean
  *   }>,
- *   breakdown: Array<{ source: string, points: number }>
+ *   breakdown: Array<{ source: string, points: number }>,
+ *   ledger: Array<{ source: string, points: number, description: string, created_at: string }>
  * }>}
  */
 export async function getPoints() {
-  if (USE_MOCK) {
-    await simulateDelay();
-    return mockDataStore.getPoints();
-  }
   return request("/student/points");
 }
 
@@ -286,7 +295,6 @@ export async function getPoints() {
 
 /**
  * Retrieves the student's milestone learning tracks and progress.
- * NOTE: PROVISIONAL SCHEMA – Subject to modification in future feature iterations.
  *
  * @returns {Promise<Array<{
  *   id: string,
@@ -301,26 +309,17 @@ export async function getPoints() {
  * }>>}
  */
 export async function getRoadmaps() {
-  if (USE_MOCK) {
-    await simulateDelay();
-    return mockDataStore.getRoadmaps();
-  }
   return request("/student/roadmaps");
 }
 
-/* ---------- 9. Student Profile (PROVISIONAL) ---------- */
+/* ---------- 9. Student Profile ---------- */
 
 /**
  * Retrieves the authenticated student's profile.
- * NOTE: PROVISIONAL SCHEMA – subject to backend profile requirements.
  *
- * @returns {Promise<{id: string, full_name: string, email: string, university_id: string, department: string, level: string}>}
+ * @returns {Promise<{id: string, full_name: string, email: string, university_id: string, department: string, role: string}>}
  */
 export async function getProfile() {
-  if (USE_MOCK) {
-    await simulateDelay();
-    return mockDataStore.getProfile();
-  }
   return request("/student/profile");
 }
 
@@ -332,7 +331,7 @@ export async function getProfile() {
  * @returns {Promise<Array<{
  *   id: string,
  *   type: 'warning'|'notice'|'suggestion'|'system',
- *   sender: string,
+ *   sender_name: string,
  *   subject: string,
  *   body: string,
  *   created_at: string,
@@ -340,10 +339,6 @@ export async function getProfile() {
  * }>>}
  */
 export async function getInbox() {
-  if (USE_MOCK) {
-    await simulateDelay();
-    return mockDataStore.getInbox();
-  }
   return request("/student/inbox");
 }
 
@@ -354,10 +349,6 @@ export async function getInbox() {
  * @returns {Promise<boolean>}
  */
 export async function markMessageRead(id) {
-  if (USE_MOCK) {
-    await simulateDelay(50);
-    return mockDataStore.markMessageRead(id);
-  }
   await request(`/student/inbox/${encodeURIComponent(id)}/read`, {
     method: "PUT",
   });
@@ -370,9 +361,20 @@ export async function markMessageRead(id) {
  * @returns {Promise<{ unread_count: number }>}
  */
 export async function getUnreadCount() {
-  if (USE_MOCK) {
-    await simulateDelay(50);
-    return { unread_count: mockDataStore.getUnreadCount() };
-  }
   return request("/student/inbox/unread-count");
+}
+
+/* ---------- 11. Ratings ---------- */
+
+/**
+ * Submits a rating for a lecture or doctor.
+ *
+ * @param {{ target_type: 'lecture'|'doctor', target_id: string, course_id?: string, score: number, comment?: string }} ratingData
+ * @returns {Promise<object>}
+ */
+export async function submitRating(ratingData) {
+  return request("/student/ratings", {
+    method: "POST",
+    body: ratingData,
+  });
 }

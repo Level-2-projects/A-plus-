@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mock API Playground – A Plus Dev Tools</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/tokens.css">
+  <link rel="stylesheet" href="../css/base.css">
+  <link rel="stylesheet" href="../css/components.css">
+  <style>
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: var(--font-body);
+      padding: var(--space-8);
+      max-inline-size: 1200px;
+      margin-inline: auto;
+    }
+    .header-panel {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-block-end: var(--space-6);
+      flex-wrap: wrap;
+      gap: var(--space-4);
+    }
+    .title-group h1 {
+      font-family: var(--font-heading);
+      font-size: var(--font-size-32);
+      font-weight: 800;
+      color: var(--navy-900);
+      margin: 0;
+    }
+    .title-group p {
+      color: var(--text-muted);
+      margin-block-start: var(--space-1);
+    }
+    .playground-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--space-6);
+      margin-block-end: var(--space-8);
+    }
+    @media (max-width: 900px) {
+      .playground-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: var(--space-6);
+      box-shadow: var(--shadow-card);
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-4);
+    }
+    .panel h2 {
+      font-family: var(--font-heading);
+      font-size: var(--font-size-20);
+      font-weight: 700;
+      color: var(--navy-900);
+      margin: 0;
+    }
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-2);
+    }
+    .form-label {
+      font-size: var(--font-size-14);
+      font-weight: 600;
+      color: var(--navy-900);
+    }
+    .select, .textarea {
+      width: 100%;
+      padding: var(--space-3);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      background: var(--surface);
+      font-family: var(--font-body);
+      font-size: var(--font-size-14);
+      color: var(--text);
+    }
+    .select:focus, .textarea:focus {
+      outline: none;
+      border-color: var(--secondary);
+      box-shadow: 0 0 0 2px rgba(47, 128, 196, 0.2);
+    }
+    .textarea {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: var(--font-size-12);
+      resize: vertical;
+      min-block-size: 120px;
+    }
+    .output-box {
+      background: #0F1F33;
+      color: #E6F0FA;
+      padding: var(--space-4);
+      border-radius: var(--radius-md);
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: var(--font-size-12);
+      overflow: auto;
+      max-block-size: 320px;
+      margin: 0;
+      white-space: pre;
+    }
+    .output-box.has-error {
+      background: #2D1515;
+      color: #FFB3B3;
+      border: 1px solid #C53030;
+    }
+    .accounts-panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: var(--space-6);
+      box-shadow: var(--shadow-card);
+      margin-block-end: var(--space-8);
+    }
+    .accounts-panel h2 {
+      font-family: var(--font-heading);
+      font-size: var(--font-size-20);
+      font-weight: 700;
+      margin-block-end: var(--space-4);
+    }
+    .data-table {
+      inline-size: 100%;
+      border-collapse: collapse;
+      font-size: var(--font-size-14);
+    }
+    .data-table th, .data-table td {
+      padding: var(--space-3);
+      text-align: start;
+      border-block-end: 1px solid var(--border);
+    }
+    .data-table th {
+      color: var(--text-muted);
+      font-size: var(--font-size-12);
+      text-transform: uppercase;
+      font-weight: 600;
+      background: var(--bg);
+    }
+    .data-table code {
+      background: var(--bg);
+      padding: 2px 6px;
+      border-radius: var(--radius-sm);
+      font-family: ui-monospace, SFMono-Regular, monospace;
+      font-size: var(--font-size-12);
+    }
+  </style>
+</head>
+<body>
+  <header class="header-panel">
+    <div class="title-group">
+      <h1>Mock API Playground</h1>
+      <p>Execute real API client functions as any seeded user account and inspect state</p>
+    </div>
+    <button id="playground-reset-db-btn" class="btn btn-secondary" type="button">Reset Demo Data</button>
+  </header>
+
+  <div class="playground-grid">
+    <!-- Left: Request Configuration -->
+    <section class="panel">
+      <h2>API Request Builder</h2>
+
+      <div class="form-group">
+        <label for="playground-user-select" class="form-label">Active Caller (Identity):</label>
+        <select id="playground-user-select" class="select"></select>
+      </div>
+
+      <div class="form-group">
+        <label for="playground-endpoint-select" class="form-label">Endpoint Action:</label>
+        <select id="playground-endpoint-select" class="select"></select>
+      </div>
+
+      <div class="form-group">
+        <label for="playground-body-input" class="form-label">Request Body (JSON for POST/PATCH):</label>
+        <textarea id="playground-body-input" class="textarea" placeholder='{"key": "value"}'></textarea>
+      </div>
+
+      <button id="playground-run-btn" class="btn btn-primary" type="button">Send Request</button>
+
+      <div class="form-group">
+        <label class="form-label">API Client Response:</label>
+        <pre id="playground-response-output" class="output-box" aria-live="polite">Ready...</pre>
+      </div>
+    </section>
+
+    <!-- Right: Live Database Snapshot -->
+    <section class="panel">
+      <h2>Live Database Snapshot (localStorage)</h2>
+      <p style="color: var(--text-muted); font-size: var(--font-size-12); margin: 0;">
+        Updates automatically whenever an endpoint mutates data or when reset is clicked.
+      </p>
+      <pre id="playground-db-snapshot-output" class="output-box" style="max-block-size: 600px;">Loading...</pre>
+    </section>
+  </div>
+
+  <!-- Accounts Documentation Table -->
+  <section class="accounts-panel">
+    <h2>Available Seed Accounts</h2>
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Email (Login Identifier)</th>
+          <th>Password</th>
+          <th>Role</th>
+          <th>Full Name</th>
+          <th>Department</th>
+        </tr>
+      </thead>
+      <tbody id="playground-users-table"></tbody>
+    </table>
+  </section>
+
+  <script type="module" src="../js/dev/mock-playground.js"></script>
+</body>
+</html>
