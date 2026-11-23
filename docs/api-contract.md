@@ -660,11 +660,20 @@ Aggregated student ratings and feedback without student identities.
 - `POST /doctor/quizzes` creates a quiz in an owned course; `PATCH /doctor/quizzes/{quiz_id}` updates it.
 - Every write is scoped to the authenticated doctor's own courses. Students enrolled in those courses can see the course content; other students cannot.
 
+### 3.10 Department Admin Broadcasts and Settings
+- **Method / Path:** `POST /admin/messages`
+- **Request Body:** `recipient_type` may be `students`, `doctors`, `both`, `course`, or `dean`. A `course` broadcast requires `course_id`; the course must belong to the authenticated administrator's department or the route returns `403`.
+- **Response `201 Created`:** `{ "sent_count": number }`. Each recipient receives exactly one unread message with the administrator's sender name and role.
+- **Method / Path:** `GET /admin/messages`
+- **Response `200 OK`:** The authenticated administrator's broadcast records, each including `recipient_count`.
+- **Method / Path:** `GET /admin/settings`
+- **Response `200 OK`:** Current institutional settings. Department administrators have read-only access; a department-admin token on `PATCH /dean/settings` returns `403`.
+
 ---
 
 ## 4. Complete Mock Route Inventory
 
-The mock server currently handles 44 routes, including the public `POST /auth/login` route. All other routes require authentication; student and doctor routes are role-restricted. `{...}` denotes a path parameter.
+The mock server currently handles 76 routes, including the public `POST /auth/login` route. All other routes require authentication; student and doctor routes are role-restricted. `{...}` denotes a path parameter.
 
 | Role | Method | Path |
 |---|---|---|
@@ -712,6 +721,37 @@ The mock server currently handles 44 routes, including the public `POST /auth/lo
 | Doctor | POST | `/doctor/messages` |
 | Doctor | GET | `/doctor/ratings` |
 | Doctor | GET | `/doctor/profile` |
+| Dept Admin | GET | `/admin/dashboard/summary` |
+| Dept Admin | GET | `/admin/students` |
+| Dept Admin | POST | `/admin/students` |
+| Dept Admin | PATCH | `/admin/students/{student_id}` |
+| Dept Admin | POST | `/admin/students/{student_id}/deactivate` |
+| Dept Admin | POST | `/admin/students/{student_id}/reactivate` |
+| Dept Admin | GET | `/admin/doctors` |
+| Dept Admin | POST | `/admin/doctors` |
+| Dept Admin | PATCH | `/admin/doctors/{doctor_id}` |
+| Dept Admin | POST | `/admin/doctors/{doctor_id}/deactivate` |
+| Dept Admin | POST | `/admin/doctors/{doctor_id}/reactivate` |
+| Dept Admin | GET | `/admin/courses` |
+| Dept Admin | POST | `/admin/courses` |
+| Dept Admin | PATCH | `/admin/courses/{course_id}` |
+| Dept Admin | POST | `/admin/courses/{course_id}/enroll` |
+| Dept Admin | DELETE | `/admin/courses/{course_id}/enroll/{student_id}` |
+| Dept Admin | GET | `/admin/attendance` |
+| Dept Admin | GET | `/admin/points` |
+| Dept Admin | GET | `/admin/messages` |
+| Dept Admin | POST | `/admin/messages` |
+| Dept Admin | GET | `/admin/settings` |
+| Dept Admin | GET | `/admin/inbox` |
+| Dept Admin | GET | `/admin/inbox/unread-count` |
+| Dept Admin | PUT | `/admin/inbox/{message_id}/read` |
+| Dean | GET | `/dean/overview/summary` |
+| Dean | GET | `/dean/departments` |
+| Dean | POST | `/dean/departments` |
+| Dean | GET | `/dean/departments/{department_id}` |
+| Dean | GET | `/dean/settings` |
+| Dean | PATCH | `/dean/settings` |
+| Dean | GET | `/dean/profile` |
 
 ### Integration Points
 - `js/mock/mock-ai.js` currently supplies deterministic assignment feedback and an AI opinion score. Student responses include feedback only; the doctor assignment response is the only route exposing the AI opinion score.

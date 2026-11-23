@@ -43,7 +43,9 @@ erDiagram
 Academic departments within faculties.
 * `id` VARCHAR(36) PRIMARY KEY
 * `name` NVARCHAR(120) NOT NULL UNIQUE (e.g. "Computer Science")
+* `code` VARCHAR(10) NOT NULL UNIQUE (e.g. "CS", "IS")
 * `college` NVARCHAR(160) NOT NULL
+* `created_at` DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME()
 
 ### 2.2 `users`
 Accounts across all platform roles (student, doctor, department_admin, super_admin).
@@ -169,6 +171,29 @@ Private student tasks.
 * `due_date` DATE NULL
 * `priority` VARCHAR(10) NOT NULL CHECK (`priority` IN ('high', 'medium', 'low'))
 * `completed` BIT NOT NULL DEFAULT 0
+* `created_at` DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME()
+
+### 2.14 `settings`
+Institutional policies and gamification point rules configured at Dean level.
+* `id` VARCHAR(36) PRIMARY KEY
+* `absence_warning_threshold` INT NOT NULL DEFAULT 2
+* `rating_cooldown_days` INT NOT NULL DEFAULT 7
+* `points_submission_on_time` INT NOT NULL DEFAULT 50
+* `points_quiz_completion` INT NOT NULL DEFAULT 30
+* `points_attendance_present` INT NOT NULL DEFAULT 10
+* `updated_at` DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME()
+* `updated_by` VARCHAR(36) NULL REFERENCES `users(id)`
+
+### 2.15 `broadcasts`
+Broadcast announcement log sent across college or department audiences.
+* `id` VARCHAR(36) PRIMARY KEY
+* `sender_id` VARCHAR(36) NOT NULL REFERENCES `users(id)`
+* `scope` VARCHAR(30) NOT NULL CHECK (`scope` IN ('college', 'department'))
+* `audience` VARCHAR(50) NOT NULL
+* `department_id` VARCHAR(36) NULL REFERENCES `departments(id)`
+* `subject` NVARCHAR(200) NOT NULL
+* `body` NVARCHAR(MAX) NOT NULL
+* `recipient_count` INT NOT NULL DEFAULT 0
 * `created_at` DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME()
 
 ---

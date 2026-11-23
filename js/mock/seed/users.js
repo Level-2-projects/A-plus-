@@ -13,8 +13,12 @@
  *  student3@aplus.edu / Student3!   – Yara Ibrahim       (enrolled in Course A, B, C)
  *  student4@aplus.edu / Student4!   – Omar Farouk        (enrolled in Course B, C)
  *  student5@aplus.edu / Student5!   – Laila Mostafa      (enrolled in Course C ONLY – isolation test)
- *  dept@aplus.edu     / Dept123     – Rania Hatem        (department admin)
+ *  dept@aplus.edu     / Dept123     – Rania Hatem        (department admin – dept-1)
  *  dean@aplus.edu     / Dean123     – Prof. Hassan Ali   (super admin / dean)
+ *  dept2@aplus.edu    / Dept2!      – Dina Essam         (department admin – dept-2)
+ *  doctor3@aplus.edu  / Doctor3!    – Khaled Omar        (doctor – dept-2)
+ *  student6@aplus.edu / Student6!   – Hana Youssef       (student – dept-2)
+ *  student7@aplus.edu / Student7!   – Fady Samy          (student – dept-2)
  *
  * Depends on: Nothing.
  */
@@ -134,5 +138,55 @@ export const SEED_USERS = [
     department_name: "Computer Science",
     university_id: "CS2023999",
     disabled: true,
+  },
+
+  /* ── Dept 2 (Information Systems) Users ── */
+  // dept2@aplus.edu / Dept2! – Dina Essam – department_admin – dept-2
+  {
+    id: "usr-11",
+    email: "dept2@aplus.edu",
+    password: "Dept2!",
+    full_name: "Dina Essam",
+    role: "department_admin",
+    department_id: "dept-2",
+    department_name: "Information Systems",
+    university_id: "ADM2010002",
+    disabled: false,
+  },
+  // doctor3@aplus.edu / Doctor3! – Khaled Omar – doctor – dept-2
+  {
+    id: "usr-12",
+    email: "doctor3@aplus.edu",
+    password: "Doctor3!",
+    full_name: "Khaled Omar",
+    role: "doctor",
+    department_id: "dept-2",
+    department_name: "Information Systems",
+    university_id: "DR2020003",
+    disabled: false,
+  },
+  // student6@aplus.edu / Student6! – Hana Youssef – student – dept-2
+  {
+    id: "usr-13",
+    email: "student6@aplus.edu",
+    password: "Student6!",
+    full_name: "Hana Youssef",
+    role: "student",
+    department_id: "dept-2",
+    department_name: "Information Systems",
+    university_id: "IS2023001",
+    disabled: false,
+  },
+  // student7@aplus.edu / Student7! – Fady Samy – student – dept-2
+  {
+    id: "usr-14",
+    email: "student7@aplus.edu",
+    password: "Student7!",
+    full_name: "Fady Samy",
+    role: "student",
+    department_id: "dept-2",
+    department_name: "Information Systems",
+    university_id: "IS2023002",
+    disabled: false,
   },
 ];

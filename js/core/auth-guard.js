@@ -5,16 +5,17 @@
  */
 
 import { getToken, getCurrentUser, clearSession } from "../api.js";
-import { LOGIN_ROUTE } from "../config.js";
+import { LOGIN_ROUTE, ROLE_ROUTES } from "../config.js";
 
 /**
  * Validates the user's session and authorization level.
- * If no token exists or role is unauthorized, clears the session and halts execution with a redirect.
+ * If no token exists or user is not logged in, clears the session and redirects to redirectUrl.
+ * If the user is logged in but has the wrong role for this route, redirects to their own home route.
  *
  * @param {object} options
  * @param {string[]} [options.allowedRoles=['student']] - Authorized roles for this route.
  * @param {string} [options.redirectUrl=LOGIN_ROUTE] - Redirect destination if unauthorized.
- * @returns {{ id: number, full_name: string, role: string, department?: string }|null}
+ * @returns {{ id: string, full_name: string, role: string, department?: string }|null}
  */
 export function requireAuth({ allowedRoles = ["student"], redirectUrl = LOGIN_ROUTE } = {}) {
   const token = getToken();
@@ -27,11 +28,11 @@ export function requireAuth({ allowedRoles = ["student"], redirectUrl = LOGIN_RO
     return null;
   }
 
-  // If role is forbidden from this area, clear session and redirect
+  // If role is forbidden from this area, redirect to user's home route without clearing session
   if (allowedRoles.length > 0 && !allowedRoles.includes(user.role)) {
     console.warn(`[AuthGuard] Access denied for role "${user.role}". Allowed roles:`, allowedRoles);
-    clearSession();
-    window.location.replace(redirectUrl);
+    const targetRoute = ROLE_ROUTES[user.role] || redirectUrl;
+    window.location.replace(targetRoute);
     return null;
   }
 

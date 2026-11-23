@@ -23,11 +23,13 @@ import { SEED_MESSAGES }             from "./seed/messages.js";
 import { SEED_POINTS_LEDGER }        from "./seed/points-ledger.js";
 import { SEED_RATINGS }              from "./seed/ratings.js";
 import { SEED_TODOS }                from "./seed/todos.js";
+import { SEED_SETTINGS }             from "./seed/settings.js";
+import { SEED_BROADCASTS }           from "./seed/broadcasts.js";
 
 /* ---------- Constants ---------- */
 
 /** Increment whenever seed shape changes to force a DB reset for old sessions. */
-const DB_VERSION = 2;
+const DB_VERSION = 4;
 
 /** localStorage key under which the entire database JSON is stored. */
 export const MOCK_DB_KEY = "aplus_mock_db";
@@ -58,6 +60,8 @@ function buildSeedSnapshot() {
     points_ledger:        JSON.parse(JSON.stringify(SEED_POINTS_LEDGER)),
     ratings:              JSON.parse(JSON.stringify(SEED_RATINGS)),
     todos:                JSON.parse(JSON.stringify(SEED_TODOS)),
+    settings:             JSON.parse(JSON.stringify(SEED_SETTINGS)),
+    broadcasts:           JSON.parse(JSON.stringify(SEED_BROADCASTS)),
   };
 }
 

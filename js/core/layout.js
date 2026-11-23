@@ -16,9 +16,13 @@ import { BRANDING } from "../config.js";
 import { STRINGS } from "../config/strings.js";
 import { STUDENT_NAV_ITEMS } from "../config/student-nav.js";
 import { DOCTOR_NAV_ITEMS } from "../config/doctor-nav.js";
+import { ADMIN_NAV_ITEMS } from "../config/admin-nav.js";
+import { DEAN_NAV_ITEMS } from "../config/dean-nav.js";
 import { getCurrentUser, logout } from "../api.js";
 import { getUnreadCount, getInbox } from "../api/student-api.js";
 import { getDoctorPendingSubmissionsCount } from "../api/doctor-api.js";
+import { getAdminUnreadCount, getAdminInbox } from "../api/admin-api.js";
+import { getDeanUnreadCount, getDeanInbox } from "../api/dean-api.js";
 import { requireAuth } from "./auth-guard.js";
 import { listenForChanges } from "../mock/mock-db.js";
 
@@ -53,7 +57,13 @@ export function initLayout({ role = "student", navItems = [], activePage = "", p
 
   const pageTitle = currentNavItem ? currentNavItem.label : explicitPageTitle || branding.wordmark;
   const currentUser = user || getCurrentUser() || { full_name: "User", role };
-  const profilePrefix = role === "doctor" ? STRINGS.profile.doctorPrefix : STRINGS.profile.studentPrefix;
+  let profilePrefix = "";
+  if (role === "student" && STRINGS.profile.studentPrefix) {
+    profilePrefix = `${STRINGS.profile.studentPrefix} `;
+  } else if (role === "doctor" && STRINGS.profile.doctorPrefix) {
+    profilePrefix = `${STRINGS.profile.doctorPrefix} `;
+  }
+  // department_admin and super_admin display user's name only, without title prefix
 
   // 1. Render layout DOM scaffold
   shellEl.className = "app-shell";
@@ -102,7 +112,7 @@ export function initLayout({ role = "student", navItems = [], activePage = "", p
 
       <div class="sidebar-footer">
         <a href="profile.html" class="sidebar-profile-link" ${activePage === "profile" ? 'aria-current="page"' : ""}>
-          <span class="sidebar-profile-name" title="${escapeHtml(currentUser.full_name)}">${profilePrefix} ${escapeHtml(currentUser.full_name)}</span>
+          <span class="sidebar-profile-name" title="${escapeHtml(currentUser.full_name)}">${profilePrefix}${escapeHtml(currentUser.full_name)}</span>
         </a>
       </div>
     </aside>
@@ -141,7 +151,7 @@ export function initLayout({ role = "student", navItems = [], activePage = "", p
                 <li class="notif-empty-state">${STRINGS.topbar.noNotifications}</li>
               </ul>
               <div class="notif-footer">
-                <a href="${role === 'doctor' ? 'messages.html' : 'inbox.html'}" class="notif-footer-link">${role === 'doctor' ? STRINGS.topbar.viewAllDoctorMessages : STRINGS.topbar.viewAllMessages}</a>
+                <a href="${role === 'doctor' || role === 'department_admin' ? 'messages.html' : 'inbox.html'}" class="notif-footer-link">${role === 'doctor' || role === 'department_admin' ? STRINGS.topbar.viewAllDoctorMessages : STRINGS.topbar.viewAllMessages}</a>
               </div>
             </div>
           </div>
@@ -306,6 +316,68 @@ export function initDoctorPage(pageId) {
   });
 }
 
+/**
+ * High-level initialization function for all department admin pages.
+ * Enforces department_admin role authentication and builds the shell layout.
+ *
+ * @param {string} pageId - Navigation ID or supported admin page ID.
+ */
+export function initAdminPage(pageId) {
+  // Permit profile because it intentionally has no sidebar navigation item.
+  const validIds = ADMIN_NAV_ITEMS.map((item) => item.id);
+  const nonNavigationPages = { profile: STRINGS.pages.adminProfile || STRINGS.pages.profile };
+  if (!validIds.includes(pageId) && !nonNavigationPages[pageId]) {
+    const errorMsg = `[A Plus Shell] Invalid admin page ID: "${pageId}". Expected one of: [${validIds.join(", ")}]`;
+    console.error(errorMsg);
+    throw new Error(errorMsg);
+  }
+
+  // 1. Guard route: redirect if not authenticated department_admin
+  const user = requireAuth({ allowedRoles: ["department_admin"], redirectUrl: "../index.html" });
+  if (!user) return; // Halt if redirect triggered
+
+  // 2. Initialize layout with empty page-content
+  initLayout({
+    role: "department_admin",
+    navItems: ADMIN_NAV_ITEMS,
+    activePage: pageId,
+    pageTitle: nonNavigationPages[pageId] || "",
+    user,
+    branding: BRANDING,
+  });
+}
+
+/**
+ * High-level initialization function for all dean (super_admin) pages.
+ * Enforces super_admin role authentication and builds the shell layout.
+ *
+ * @param {string} pageId - Navigation ID or supported dean page ID.
+ */
+export function initDeanPage(pageId) {
+  // Permit profile because it intentionally has no sidebar navigation item.
+  const validIds = DEAN_NAV_ITEMS.map((item) => item.id);
+  const nonNavigationPages = { profile: STRINGS.pages.deanProfile || STRINGS.pages.profile };
+  if (!validIds.includes(pageId) && !nonNavigationPages[pageId]) {
+    const errorMsg = `[A Plus Shell] Invalid dean page ID: "${pageId}". Expected one of: [${validIds.join(", ")}]`;
+    console.error(errorMsg);
+    throw new Error(errorMsg);
+  }
+
+  // 1. Guard route: redirect if not authenticated super_admin
+  const user = requireAuth({ allowedRoles: ["super_admin"], redirectUrl: "../index.html" });
+  if (!user) return; // Halt if redirect triggered
+
+  // 2. Initialize layout with empty page-content
+  initLayout({
+    role: "super_admin",
+    navItems: DEAN_NAV_ITEMS,
+    activePage: pageId,
+    pageTitle: nonNavigationPages[pageId] || "",
+    user,
+    branding: BRANDING,
+  });
+}
+
 /* ---------- Private Helper Functions ---------- */
 
 /** Generates 2-letter uppercase initials from full name */
@@ -442,6 +514,54 @@ async function loadDynamicBadges(role = "student") {
     return;
   }
 
+  if (role === "department_admin") {
+    try {
+      const res = await getAdminUnreadCount();
+      const count = res?.unread_count || 0;
+      const messagesBadge = document.getElementById("nav-admin-messages-badge");
+      const bellDot = document.getElementById("bell-dot");
+      const notifHeaderBadge = document.getElementById("notif-count-badge");
+      if (messagesBadge) {
+        messagesBadge.textContent = String(count);
+        messagesBadge.hidden = count === 0;
+      }
+      if (bellDot) {
+        bellDot.hidden = count === 0;
+      }
+      if (notifHeaderBadge) {
+        notifHeaderBadge.textContent = `${count} unread`;
+        notifHeaderBadge.hidden = count === 0;
+      }
+    } catch (err) {
+      console.warn("[Layout] Failed to load admin unread messages count:", err);
+    }
+    return;
+  }
+
+  if (role === "super_admin") {
+    try {
+      const res = await getDeanUnreadCount();
+      const count = res?.unread_count || 0;
+      const inboxBadge = document.getElementById("nav-dean-inbox-badge");
+      const bellDot = document.getElementById("bell-dot");
+      const notifHeaderBadge = document.getElementById("notif-count-badge");
+      if (inboxBadge) {
+        inboxBadge.textContent = String(count);
+        inboxBadge.hidden = count === 0;
+      }
+      if (bellDot) {
+        bellDot.hidden = count === 0;
+      }
+      if (notifHeaderBadge) {
+        notifHeaderBadge.textContent = `${count} unread`;
+        notifHeaderBadge.hidden = count === 0;
+      }
+    } catch (err) {
+      console.warn("[Layout] Failed to load dean unread inbox count:", err);
+    }
+    return;
+  }
+
   // Student role: load unread inbox count
   try {
     const res = await getUnreadCount();
@@ -472,7 +592,14 @@ async function loadDynamicBadges(role = "student") {
 /** Fetches latest notifications and renders inside the bell dropdown */
 async function loadNotificationDropdown(role = "student") {
   try {
-    const messages = role === "doctor" ? [] : await getInbox();
+    let messages = [];
+    if (role === "student") {
+      messages = await getInbox();
+    } else if (role === "department_admin") {
+      messages = await getAdminInbox();
+    } else if (role === "super_admin") {
+      messages = await getDeanInbox();
+    }
     const listEl = document.getElementById("notif-list");
     if (!listEl) return;
 
@@ -498,7 +625,8 @@ async function loadNotificationDropdown(role = "student") {
       item.className = `notif-item${msg.is_read ? "" : " is-unread"}`;
       const link = document.createElement("a");
       link.className = "notif-item-link";
-      link.href = `inbox.html?id=${encodeURIComponent(msg.id)}`;
+      const targetPage = role === "department_admin" ? "messages.html" : "inbox.html";
+      link.href = `${targetPage}?id=${encodeURIComponent(msg.id)}`;
       const meta = document.createElement("div");
       meta.className = "notif-meta-row";
       const sender = document.createElement("span");

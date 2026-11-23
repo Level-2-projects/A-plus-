@@ -16,6 +16,8 @@
  *  9. Scenarios 8–11: Points, anonymous ratings, todo ownership/CRUD, and dashboard aggregates
  * 10. Scenario 12: Database persistence & reset functionality
  * 11. Scenario 13: Cross-tab synchronization via storage event
+ * 12. Scenario 19: Shell navigation integrity – every nav href resolves to a real file on disk,
+ *     profile.html exists in all four role folders, and admin/dean profile API endpoints return 200.
  *
  * Depends on: js/mock/mock-db.js, js/mock/mock-server.js, js/core/clock.js
  */
@@ -161,7 +163,7 @@ export const SCENARIOS = [
         course_id: "crs-a",
         title: "Sprint 3: Microkernel Architecture Lab",
         description: "Implement a plug-in architecture with dynamic module loading.",
-        due_date: "2026-11-25T23:59:00Z",
+        due_date: "2027-06-25T23:59:00Z",
         max_grade: 20,
       };
 
@@ -199,7 +201,8 @@ export const SCENARIOS = [
     category: "Submissions & AI",
     run: async () => {
       mockDb.resetToSeed();
-      clearFakeClock();
+      // Set clock to 2026-11-05 so asg-a1 (due 2026-11-10) is still open and on-time
+      setFakeClock(new Date("2026-11-05T10:00:00Z"));
 
       const student1Token = "aplus-mock-usr-1"; // Student Karim Adel (enrolled in crs-a)
       // asg-a1 is currently open and has no submission by student 1
@@ -227,6 +230,9 @@ export const SCENARIOS = [
       // 3. Submitting with empty content returns 422
       const emptyRes = mockServerHandle("POST", `/student/assignments/asg-b1/submit`, { content: "  " }, "aplus-mock-usr-2");
       assertEqual(emptyRes.status, 422, "Empty content submission returns 422 Unprocessable Entity");
+
+      // Restore real clock after sc-3 finishes
+      clearFakeClock();
     },
   },
 
@@ -1082,6 +1088,463 @@ export const SCENARIOS = [
         assertEqual(unreadRes.data.unread_count, 4, "Unread count incremented to 4");
       } finally {
         unlisten();
+      }
+    },
+  },
+
+  /* -------------------------------------------------------------
+     Scenario 14: Admin Scope and Student Management
+  ------------------------------------------------------------- */
+  {
+    id: "sc-14-admin-scope-students",
+    title: "Scenario 14: Admin Scope and Student Account Management",
+    category: "Department Admin",
+    run: async () => {
+      mockDb.resetToSeed();
+      clearFakeClock();
+
+      const dept1AdminToken = "aplus-mock-usr-8";  // Rania Hatem (Computer Science)
+      const dept2AdminToken = "aplus-mock-usr-11"; // Dina Essam (Information Systems)
+      const deanToken       = "aplus-mock-usr-9";  // Hassan Ali (Super Admin / Dean)
+
+      // 1. Dept 1 Admin reads dashboard summary for their department
+      const summaryRes = mockServerHandle("GET", "/admin/dashboard/summary", null, dept1AdminToken);
+      assertEqual(summaryRes.status, 200, "Dept 1 Admin dashboard returns 200");
+      assertEqual(summaryRes.data.dept_name, "Computer Science", "Dashboard shows Computer Science");
+      assert(summaryRes.data.student_count > 0, "Student count is populated");
+      assert(summaryRes.data.doctor_count > 0, "Doctor count is populated");
+      assert(summaryRes.data.course_count > 0, "Course count is populated");
+
+      // 2. Dept 1 Admin creates a student in Computer Science
+      const createPayload = {
+        full_name: "Tarek Nour",
+        email: "tarek@aplus.edu",
+        university_id: "CS2023099",
+      };
+      const createRes = mockServerHandle("POST", "/admin/students", createPayload, dept1AdminToken);
+      assertEqual(createRes.status, 201, "Student creation returns 201 Created");
+      assert(Boolean(createRes.data.student?.id), "Student record returned with ID");
+      assert(Boolean(createRes.data.temp_password), "Temporary password returned once in response");
+      assertEqual(createRes.data.student.email, "tarek@aplus.edu", "Student email matches");
+
+      // 3. Newly created student appears in Dept 1 Admin's student directory
+      const listRes = mockServerHandle("GET", "/admin/students", null, dept1AdminToken);
+      assertEqual(listRes.status, 200, "Dept 1 Admin gets students list");
+      assert(listRes.data.some((s) => s.id === createRes.data.student.id), "New student appears in Dept 1 student directory");
+
+      // 4. Dept 2 Admin cannot see Dept 1 students (department isolation)
+      const dept2ListRes = mockServerHandle("GET", "/admin/students", null, dept2AdminToken);
+      assertEqual(dept2ListRes.status, 200, "Dept 2 Admin gets students list");
+      assert(!dept2ListRes.data.some((s) => s.id === "usr-1"), "Dept 2 Admin cannot see Dept 1 student Karim Adel (usr-1)");
+      assert(!dept2ListRes.data.some((s) => s.id === createRes.data.student.id), "Dept 2 Admin cannot see newly created student");
+
+      // 5. Cross-role boundary: Dept Admin cannot access Dean routes (403)
+      const adminOnDean = mockServerHandle("GET", "/dean/overview/summary", null, dept1AdminToken);
+      assertEqual(adminOnDean.status, 403, "Dept Admin accessing Dean overview returns 403 Forbidden");
+
+      // 6. Cross-role boundary: Dean cannot access Dept Admin routes (403)
+      const deanOnAdmin = mockServerHandle("GET", "/admin/dashboard/summary", null, deanToken);
+      assertEqual(deanOnAdmin.status, 403, "Dean accessing Dept Admin dashboard returns 403 Forbidden");
+
+      // 7. Deactivate and reactivate student
+      const deactRes = mockServerHandle("POST", `/admin/students/${createRes.data.student.id}/deactivate`, null, dept1AdminToken);
+      assertEqual(deactRes.status, 200, "Deactivate returns 200");
+      assertEqual(deactRes.data.disabled, true, "Student marked disabled");
+
+      // Disabled student login attempt returns 403
+      const disabledLogin = mockServerHandle("POST", "/auth/login", { identifier: "tarek@aplus.edu", password: createRes.data.temp_password }, null);
+      assertEqual(disabledLogin.status, 403, "Disabled student cannot log in");
+
+      // Reactivate student
+      const reactRes = mockServerHandle("POST", `/admin/students/${createRes.data.student.id}/reactivate`, null, dept1AdminToken);
+      assertEqual(reactRes.status, 200, "Reactivate returns 200");
+      assertEqual(reactRes.data.disabled, false, "Student marked active");
+    },
+  },
+
+  /* -------------------------------------------------------------
+     Scenario 15: Admin Course and Enrollment Management
+  ------------------------------------------------------------- */
+  {
+    id: "sc-15-admin-course-enrollment",
+    title: "Scenario 15: Admin Course and Enrollment Management",
+    category: "Department Admin",
+    run: async () => {
+      mockDb.resetToSeed();
+      clearFakeClock();
+
+      const dept1AdminToken = "aplus-mock-usr-8";  // Computer Science
+      const dept2AdminToken = "aplus-mock-usr-11"; // Information Systems
+
+      // 1. Dept 1 Admin creates course in Computer Science assigned to Doctor 1 (usr-6)
+      const coursePayload = {
+        code: "CS401",
+        title: "Distributed Systems Architecture",
+        doctor_id: "usr-6",
+        credit_hours: 3,
+        total_lectures: 14,
+        schedule: "Sun & Tue 09:00–10:30",
+        room: "Hall 2C",
+        color: "#2563eb",
+      };
+      const createCourseRes = mockServerHandle("POST", "/admin/courses", coursePayload, dept1AdminToken);
+      assertEqual(createCourseRes.status, 201, "Course creation returns 201 Created");
+      const courseId = createCourseRes.data.id;
+      assert(Boolean(courseId), "Created course has an ID");
+      assertEqual(createCourseRes.data.code, "CS401", "Course code matches");
+
+      // 2. Dept 1 Admin enrolls Student 1 (Karim Adel, usr-1) into the course
+      const enrollRes = mockServerHandle("POST", `/admin/courses/${courseId}/enroll`, { student_id: "usr-1" }, dept1AdminToken);
+      assertEqual(enrollRes.status, 201, "Enrollment returns 201 Created");
+      assert(Boolean(enrollRes.data.id), "Enrollment ID created");
+
+      // 3. Duplicate enrollment attempt returns 409 Conflict
+      const dupEnrollRes = mockServerHandle("POST", `/admin/courses/${courseId}/enroll`, { student_id: "usr-1" }, dept1AdminToken);
+      assertEqual(dupEnrollRes.status, 409, "Duplicate enrollment returns 409 Conflict");
+
+      // 4. Unenroll student returns 200
+      const unenrollRes = mockServerHandle("DELETE", `/admin/courses/${courseId}/enroll/usr-1`, null, dept1AdminToken);
+      assertEqual(unenrollRes.status, 200, "Unenroll returns 200 OK");
+
+      // 5. Cross-department enrollment rejection: Dept 2 Admin cannot enroll a student into Dept 1 course
+      const crossEnrollRes = mockServerHandle("POST", `/admin/courses/${courseId}/enroll`, { student_id: "usr-13" }, dept2AdminToken);
+      assertEqual(crossEnrollRes.status, 403, "Cross-department enrollment returns 403 Forbidden");
+
+      // 6. Admin cannot assign a doctor from another department to a course
+      const invalidDoctorCourse = {
+        code: "CS402",
+        title: "Cloud Native Computing",
+        doctor_id: "usr-12", // Belongs to dept-2 (Information Systems)
+        credit_hours: 3,
+      };
+      const invalidDocRes = mockServerHandle("POST", "/admin/courses", invalidDoctorCourse, dept1AdminToken);
+      assertEqual(invalidDocRes.status, 422, "Assigning doctor from another department returns 422");
+    },
+  },
+
+  /* -------------------------------------------------------------
+     Scenario 16: Dean Department Creation and Overview
+  ------------------------------------------------------------- */
+  {
+    id: "sc-16-dean-departments-overview",
+    title: "Scenario 16: Dean Department Creation, Management & Overview",
+    category: "College Dean",
+    run: async () => {
+      mockDb.resetToSeed();
+      clearFakeClock();
+
+      const deanToken = "aplus-mock-usr-9"; // Hassan Ali (Dean)
+
+      // 1. Dean lists existing departments
+      const initialDeptsRes = mockServerHandle("GET", "/dean/departments", null, deanToken);
+      assertEqual(initialDeptsRes.status, 200, "Dean can fetch departments");
+      const initialCount = initialDeptsRes.data.length;
+      assert(initialCount >= 2, "At least CS and IS departments exist in seed");
+
+      // 2. Dean creates a new department with an initial administrator
+      const newDeptPayload = {
+        name: "Artificial Intelligence",
+        code: "AI",
+        admin_full_name: "Sami Mansour",
+        admin_email: "sami@aplus.edu",
+        admin_university_id: "ADM2020003",
+      };
+      const createDeptRes = mockServerHandle("POST", "/dean/departments", newDeptPayload, deanToken);
+      assertEqual(createDeptRes.status, 201, "Department creation returns 201 Created");
+      assert(Boolean(createDeptRes.data.department?.id), "Department entity created");
+      assert(Boolean(createDeptRes.data.admin?.id), "Admin user entity created");
+      assert(Boolean(createDeptRes.data.temp_password), "Temporary password returned once for new admin");
+
+      // 3. The new department is included in subsequent department listings
+      const updatedDeptsRes = mockServerHandle("GET", "/dean/departments", null, deanToken);
+      assertEqual(updatedDeptsRes.status, 200, "Updated departments fetched");
+      assertEqual(updatedDeptsRes.data.length, initialCount + 1, "Department count incremented by 1");
+      assert(updatedDeptsRes.data.some((d) => d.code === "AI"), "New AI department appears in list");
+
+      // 4. College overview summary reflects the new department count
+      const overviewRes = mockServerHandle("GET", "/dean/overview/summary", null, deanToken);
+      assertEqual(overviewRes.status, 200, "Dean overview summary returns 200");
+      assertEqual(overviewRes.data.dept_count, initialCount + 1, "Overview reflects updated department count");
+      assert(overviewRes.data.total_students > 0, "Total students reported in overview");
+
+      // 5. Duplicate department code returns 409 Conflict
+      const dupCodeRes = mockServerHandle("POST", "/dean/departments", {
+        name: "Applied AI",
+        code: "AI",
+        admin_full_name: "Second Admin",
+        admin_email: "second@aplus.edu",
+        admin_university_id: "ADM2020004",
+      }, deanToken);
+      assertEqual(dupCodeRes.status, 409, "Duplicate department code returns 409 Conflict");
+
+      // 6. Dean can view specific department detail
+      const detailRes = mockServerHandle("GET", `/dean/departments/${createDeptRes.data.department.id}`, null, deanToken);
+      assertEqual(detailRes.status, 200, "Department detail returns 200");
+      assertEqual(detailRes.data.dept_name, "Artificial Intelligence", "Department name matches");
+    },
+  },
+
+  /* -------------------------------------------------------------
+     Scenario 20: Admin Metrics, Attendance, and Points Scope
+  ------------------------------------------------------------- */
+  {
+    id: "sc-20-admin-metrics-attendance-points",
+    title: "Scenario 20: Admin Dashboard, Attendance, and Monthly Points Scope",
+    category: "Department Admin",
+    run: async () => {
+      mockDb.resetToSeed();
+      setFakeClock("2026-10-30T12:00:00Z");
+
+      const token = "aplus-mock-usr-8";
+      const db = mockDb.load();
+      const departmentId = "dept-1";
+      const activeStudents = db.users.filter((user) => user.role === "student" && user.department_id === departmentId && !user.disabled);
+      const activeDoctors = db.users.filter((user) => user.role === "doctor" && user.department_id === departmentId && !user.disabled);
+      const courses = db.courses.filter((course) => course.department_id === departmentId);
+      const courseIds = courses.map((course) => course.id);
+      const sessionIds = db.attendance_sessions.filter((session) => courseIds.includes(session.course_id)).map((session) => session.id);
+      const records = db.attendance_records.filter((record) => sessionIds.includes(record.session_id));
+      const expectedRate = Math.round((records.filter((record) => record.status === "present").length / records.length) * 1000) / 10;
+
+      const dashboard = mockServerHandle("GET", "/admin/dashboard/summary", null, token);
+      assertEqual(dashboard.status, 200, "Admin dashboard returns 200");
+      assertEqual(dashboard.data.student_count, activeStudents.length, "Dashboard student count matches seeded department");
+      assertEqual(dashboard.data.doctor_count, activeDoctors.length, "Dashboard doctor count matches seeded department");
+      assertEqual(dashboard.data.course_count, courses.length, "Dashboard course count matches seeded department");
+      assertEqual(dashboard.data.avg_attendance_rate, expectedRate, "Dashboard attendance rate matches seeded records");
+      assert(dashboard.data.at_risk_students.every((student) => activeStudents.some((item) => item.id === student.id)), "Dashboard at-risk list is department-scoped");
+
+      const attendance = mockServerHandle("GET", "/admin/attendance", null, token);
+      assertEqual(attendance.status, 200, "Admin attendance overview returns 200");
+      assertEqual(attendance.data.length, courses.length, "Attendance overview contains only department courses");
+      for (const course of courses) {
+        const expectedSessions = db.attendance_sessions.filter((session) => session.course_id === course.id);
+        const expectedRecords = db.attendance_records.filter((record) => expectedSessions.some((session) => session.id === record.session_id));
+        const expectedCourseRate = Math.round((expectedRecords.filter((record) => record.status === "present").length / expectedRecords.length) * 1000) / 10;
+        const expectedRisk = db.enrollments.filter((enrollment) => enrollment.course_id === course.id).filter((enrollment) => expectedRecords.filter((record) => record.student_id === enrollment.student_id && record.status === "absent").length >= db.settings.absence_warning_threshold).length;
+        const actual = attendance.data.find((item) => item.course_id === course.id);
+        assert(Boolean(actual), `Attendance overview includes ${course.code}`);
+        assertEqual(actual.avg_attendance_rate, expectedCourseRate, `${course.code} attendance rate matches seed`);
+        assertEqual(actual.at_risk_count, expectedRisk, `${course.code} at-risk count uses settings threshold`);
+      }
+
+      const assertMonthlyLeaderboard = (month, label) => {
+        const response = mockServerHandle("GET", "/admin/points", null, token);
+        assertEqual(response.status, 200, `${label} admin points returns 200`);
+        const expected = activeStudents.map((student) => ({
+          student_id: student.id,
+          points: db.points_ledger.filter((entry) => entry.student_id === student.id && entry.month === month).reduce((total, entry) => total + entry.points, 0),
+        })).sort((left, right) => right.points - left.points);
+        assertEqual(JSON.stringify(response.data.map((entry) => ({ student_id: entry.student_id, points: entry.points }))), JSON.stringify(expected), `${label} ranking matches seeded ledger`);
+        assert(response.data.slice(0, 3).every((entry) => activeStudents.some((student) => student.id === entry.student_id)), `${label} top three excludes other departments`);
+      };
+
+      assertMonthlyLeaderboard("2026-10", "Current-month");
+      setFakeClock("2026-09-30T12:00:00Z");
+      assertMonthlyLeaderboard("2026-09", "Previous-month");
+      clearFakeClock();
+    },
+  },
+
+  /* -------------------------------------------------------------
+     Scenario 21: Admin Broadcasts and Inbox State
+  ------------------------------------------------------------- */
+  {
+    id: "sc-21-admin-messages-inbox",
+    title: "Scenario 21: Admin Department Broadcasts, Sent Counts, and Inbox Read State",
+    category: "Department Admin",
+    run: async () => {
+      mockDb.resetToSeed();
+      setFakeClock("2026-10-30T12:00:00Z");
+
+      const token = "aplus-mock-usr-8";
+      const db = mockDb.load();
+      const expectedRecipients = {
+        students: db.users.filter((user) => user.role === "student" && user.department_id === "dept-1" && !user.disabled).map((user) => user.id),
+        doctors: db.users.filter((user) => user.role === "doctor" && user.department_id === "dept-1" && !user.disabled).map((user) => user.id),
+        both: db.users.filter((user) => ["student", "doctor"].includes(user.role) && user.department_id === "dept-1" && !user.disabled).map((user) => user.id),
+        course: db.enrollments.filter((enrollment) => enrollment.course_id === "crs-a").map((enrollment) => enrollment.student_id),
+      };
+
+      for (const [recipientType, recipients] of Object.entries(expectedRecipients)) {
+        const subject = `Admin ${recipientType} notice`;
+        const payload = { recipient_type: recipientType, course_id: recipientType === "course" ? "crs-a" : undefined, subject, body: "Department update", type: "notice" };
+        const sent = mockServerHandle("POST", "/admin/messages", payload, token);
+        assertEqual(sent.status, 201, `${recipientType} broadcast is created`);
+        assertEqual(sent.data.sent_count, recipients.length, `${recipientType} broadcast recipient count matches scope`);
+        const created = mockDb.load().messages.filter((message) => message.subject === subject);
+        assertEqual(created.length, recipients.length, `${recipientType} creates one message per recipient`);
+        assert(created.every((message) => recipients.includes(message.recipient_id) && !message.is_read && message.sender_name === "Rania Hatem" && message.sender_type === "admin"), `${recipientType} messages preserve admin identity and unread state`);
+      }
+
+      const foreignCourse = mockServerHandle("POST", "/admin/messages", { recipient_type: "course", course_id: "crs-d", subject: "Forbidden", body: "No delivery" }, token);
+      assertEqual(foreignCourse.status, 403, "Admin cannot target another department course");
+
+      const sentList = mockServerHandle("GET", "/admin/messages", null, token);
+      assertEqual(sentList.status, 200, "Admin sent list returns 200");
+      assert(sentList.data.every((broadcast) => typeof broadcast.recipient_count === "number"), "Admin sent list includes recipient counts");
+
+      const inbound = { id: "msg-admin-inbound", sender_id: "usr-9", sender_type: "admin", sender_name: "Hassan Ali", recipient_id: "usr-8", type: "notice", subject: "Dean update", body: "Please review the department report.", created_at: "2026-10-30T12:00:00.000Z", is_read: false };
+      const dbWithInboxMessage = mockDb.load();
+      dbWithInboxMessage.messages.push(inbound);
+      mockDb.save(dbWithInboxMessage);
+      const unread = mockServerHandle("GET", "/admin/inbox/unread-count", null, token);
+      assertEqual(unread.status, 200, "Admin unread count returns 200");
+      assertEqual(unread.data.unread_count, 1, "Admin unread count includes inbound message");
+      const markRead = mockServerHandle("PUT", `/admin/inbox/${inbound.id}/read`, null, token);
+      assertEqual(markRead.status, 200, "Admin can mark own inbox message read");
+      assertEqual(mockServerHandle("GET", "/admin/inbox/unread-count", null, token).data.unread_count, 0, "Admin unread count decreases after mark-read");
+      clearFakeClock();
+    },
+  },
+
+  /* -------------------------------------------------------------
+     Scenario 22: Admin Settings Authorization
+  ------------------------------------------------------------- */
+  {
+    id: "sc-22-admin-settings-authorization",
+    title: "Scenario 22: Admin Settings Read Access and Dean-only Validation",
+    category: "Department Admin",
+    run: async () => {
+      mockDb.resetToSeed();
+      clearFakeClock();
+
+      const adminToken = "aplus-mock-usr-8";
+      const deanToken = "aplus-mock-usr-9";
+      const settings = mockServerHandle("GET", "/admin/settings", null, adminToken);
+      assertEqual(settings.status, 200, "Admin can read institutional settings");
+      assertEqual(settings.data.absence_warning_threshold, mockDb.load().settings.absence_warning_threshold, "Admin settings reflect database values");
+      const forbiddenWrite = mockServerHandle("PATCH", "/dean/settings", { absence_warning_threshold: 3 }, adminToken);
+      assertEqual(forbiddenWrite.status, 403, "Admin cannot write dean-only settings");
+      const invalidDeanWrite = mockServerHandle("PATCH", "/dean/settings", { absence_warning_threshold: 0, rating_cooldown_days: "bad" }, deanToken);
+      assertEqual(invalidDeanWrite.status, 422, "Dean receives validation details for invalid settings");
+    },
+  },
+
+  /* -------------------------------------------------------------
+     Scenario 23: Admin List Endpoint Scope and Leak Scan
+  ------------------------------------------------------------- */
+  {
+    id: "sc-23-admin-list-scope-leak-scan",
+    title: "Scenario 23: Admin List Endpoint Department Scope and Sensitive-data Scan",
+    category: "Department Admin",
+    run: async () => {
+      mockDb.resetToSeed();
+      clearFakeClock();
+
+      const admins = [
+        { token: "aplus-mock-usr-8", departmentId: "dept-1" },
+        { token: "aplus-mock-usr-11", departmentId: "dept-2" },
+      ];
+      const listPaths = ["/admin/students", "/admin/doctors", "/admin/courses", "/admin/attendance", "/admin/points", "/admin/messages", "/admin/inbox"];
+      for (const admin of admins) {
+        const db = mockDb.load();
+        const scopedStudents = db.users.filter((user) => user.role === "student" && user.department_id === admin.departmentId).map((user) => user.id);
+        const scopedDoctors = db.users.filter((user) => user.role === "doctor" && user.department_id === admin.departmentId).map((user) => user.id);
+        const scopedCourses = db.courses.filter((course) => course.department_id === admin.departmentId).map((course) => course.id);
+        for (const path of listPaths) {
+          const response = mockServerHandle("GET", path, null, admin.token);
+          assertEqual(response.status, 200, `${path} is available to its department admin`);
+          assertEqual(scanForbiddenKeys(response.data, /ai_score/i).length, 0, `${path} does not expose an AI score`);
+          assertEqual(scanForbiddenKeys(response.data, /ratings?\\.student_id/i).length, 0, `${path} does not expose student identity in rating data`);
+          if (path === "/admin/students") assert(response.data.every((student) => scopedStudents.includes(student.id)), "Student list is department-scoped");
+          if (path === "/admin/doctors") assert(response.data.every((doctor) => scopedDoctors.includes(doctor.id)), "Doctor list is department-scoped");
+          if (path === "/admin/courses") assert(response.data.every((course) => scopedCourses.includes(course.id)), "Course list is department-scoped");
+          if (path === "/admin/attendance") assert(response.data.every((course) => scopedCourses.includes(course.course_id)), "Attendance list is department-scoped");
+          if (path === "/admin/points") assert(response.data.every((entry) => scopedStudents.includes(entry.student_id)), "Points list is department-scoped");
+        }
+      }
+    },
+  },
+
+  /* -------------------------------------------------------------
+     Scenario 19: Shell Navigation Integrity
+     Verifies that every sidebar nav href resolves to a real HTML
+     file under the correct role folder, that profile.html exists
+     for all four roles, and that the admin/dean profile API
+     endpoints return 200 with the authenticated user's data.
+  ------------------------------------------------------------- */
+  {
+    id: "sc-19-shell-navigation-integrity",
+    title: "Scenario 19: Shell Navigation Integrity – Nav Hrefs, Profile Pages & Profile API",
+    category: "Shell & Navigation",
+    run: async () => {
+      mockDb.resetToSeed();
+      clearFakeClock();
+
+      /* ── 1. API: admin profile returns 200 with correct fields ── */
+      // dept@aplus.edu is usr-8, token follows the aplus-mock-{id} convention
+      const adminToken = "aplus-mock-usr-8";
+      const adminProfileRes = mockServerHandle("GET", "/admin/profile", null, adminToken);
+      assertEqual(adminProfileRes.status, 200, "GET /admin/profile returns 200");
+      assert(typeof adminProfileRes.data.full_name === "string" && adminProfileRes.data.full_name.length > 0, "Admin profile has full_name");
+      assert(typeof adminProfileRes.data.email === "string", "Admin profile has email");
+      assertEqual(adminProfileRes.data.role, "department_admin", "Admin profile role is department_admin");
+
+      /* ── 2. API: dean profile returns 200 with correct fields ── */
+      // dean@aplus.edu is usr-9
+      const deanToken = "aplus-mock-usr-9";
+      const deanProfileRes = mockServerHandle("GET", "/dean/profile", null, deanToken);
+      assertEqual(deanProfileRes.status, 200, "GET /dean/profile returns 200");
+      assert(typeof deanProfileRes.data.full_name === "string" && deanProfileRes.data.full_name.length > 0, "Dean profile has full_name");
+      assert(typeof deanProfileRes.data.email === "string", "Dean profile has email");
+      assertEqual(deanProfileRes.data.role, "super_admin", "Dean profile role is super_admin");
+
+      /* ── 3. File existence: only verifiable in Node (skipped in browser) ── */
+      // In the browser, typeof process is 'undefined'; the check is omitted so
+      // the scenario still runs green in the in-browser test runner.
+      if (typeof process !== "undefined" && process.versions?.node) {
+        // Dynamic import keeps this scenario importable in the browser where
+        // node:fs does not exist; the import never executes there.
+        const { existsSync } = await import("node:fs");
+        const { resolve, dirname } = await import("node:path");
+        const { fileURLToPath } = await import("node:url");
+
+        // Resolve the project root relative to this file's location:
+        // js/dev/test-scenarios.js → ../../ = project root
+        const thisFile = fileURLToPath(import.meta.url);
+        const projectRoot = resolve(dirname(thisFile), "../../");
+
+        /**
+         * Checks that every href listed in a nav array resolves to an existing
+         * file under `folder/` beneath the project root.
+         *
+         * @param {Array<{href: string}>} navItems - Navigation spec array.
+         * @param {string} folder - Role folder name (e.g. "student").
+         */
+        function assertNavFilesExist(navItems, folder) {
+          for (const item of navItems) {
+            const filePath = resolve(projectRoot, folder, item.href);
+            assert(
+              existsSync(filePath),
+              `Nav href "${item.href}" does not exist at ${folder}/${item.href}`
+            );
+          }
+        }
+
+        // Import nav arrays directly (no browser-global shims needed in Node)
+        const { STUDENT_NAV_ITEMS } = await import("../config/student-nav.js");
+        const { DOCTOR_NAV_ITEMS } = await import("../config/doctor-nav.js");
+        const { ADMIN_NAV_ITEMS } = await import("../config/admin-nav.js");
+        const { DEAN_NAV_ITEMS } = await import("../config/dean-nav.js");
+
+        // Check every sidebar link for each role resolves to a real HTML file
+        assertNavFilesExist(STUDENT_NAV_ITEMS, "student");
+        assertNavFilesExist(DOCTOR_NAV_ITEMS, "doctor");
+        assertNavFilesExist(ADMIN_NAV_ITEMS, "department-admin");
+        assertNavFilesExist(DEAN_NAV_ITEMS, "super-admin");
+
+        // Profile pages sit outside the sidebar nav – verify them explicitly
+        const profilePaths = [
+          ["student", "profile.html"],
+          ["doctor", "profile.html"],
+          ["department-admin", "profile.html"],
+          ["super-admin", "profile.html"],
+        ];
+        for (const [folder, file] of profilePaths) {
+          const filePath = resolve(projectRoot, folder, file);
+          assert(existsSync(filePath), `profile.html missing for role folder "${folder}"`);
+        }
       }
     },
   },

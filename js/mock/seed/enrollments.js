@@ -26,4 +26,9 @@ export const SEED_ENROLLMENTS = [
   { id: "enr-7",  student_id: "usr-3", course_id: "crs-c", enrolled_at: "2026-09-01" },
   { id: "enr-8",  student_id: "usr-4", course_id: "crs-c", enrolled_at: "2026-09-01" },
   { id: "enr-9",  student_id: "usr-5", course_id: "crs-c", enrolled_at: "2026-09-01" },
+
+  /* Information Systems (dept-2) */
+  { id: "enr-is1", student_id: "usr-13", course_id: "crs-d", enrolled_at: "2026-09-05T00:00:00Z" },
+  { id: "enr-is2", student_id: "usr-13", course_id: "crs-e", enrolled_at: "2026-09-05T00:00:00Z" },
+  { id: "enr-is3", student_id: "usr-14", course_id: "crs-d", enrolled_at: "2026-09-05T00:00:00Z" },
 ];

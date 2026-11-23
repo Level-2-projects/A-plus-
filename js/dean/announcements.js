@@ -1,0 +1,10 @@
+/**
+ * js/dean/announcements.js – Dean Broadcast Announcements shell view.
+ * Initializes the layout shell; content area stays empty until Stage B.
+ *
+ * Depends on: js/core/layout.js
+ */
+
+import { initDeanPage } from "../core/layout.js";
+
+initDeanPage("announcements");
