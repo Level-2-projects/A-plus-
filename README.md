@@ -44,7 +44,13 @@ A plussss/
 │   │   └── doctor-api.js        # Doctor API client (switches mock/live) with JSDoc
 │   ├── mock/
 │   │   ├── mock-db.js           # Shared localStorage mock database with cross-tab broadcast
-│   │   ├── mock-server.js       # In-browser router enforcing 401/403/404/409/422 and scope
+│   │   ├── mock-server.js       # Central request pipeline: token resolution, role checks, dispatch
+│   │   ├── mock-response-helpers.js
+│   │   ├── mock-scope-helpers.js
+│   │   ├── absence-warning-service.js
+│   │   ├── mock-runtime.js      # Shared handler dependency exports
+│   │   ├── routes/              # Auth, student, doctor, admin, and dean route registration
+│   │   ├── handlers/            # Focused synchronous route handler modules
 │   │   └── seed/                # Modular seed data files (users, courses, enrollments, etc.)
 │   │       ├── users.js
 │   │       ├── departments.js
@@ -71,15 +77,32 @@ A plussss/
 │   │   ├── roadmaps.js
 │   │   ├── inbox.js
 │   │   └── profile.js
-│   └── doctor/                  # Doctor page entry scripts (one small script per view)
-│       ├── dashboard.js
-│       ├── courses.js
-│       ├── assignments.js
-│       ├── quizzes.js
-│       ├── attendance.js
-│       ├── students.js
-│       ├── messages.js
-│       ├── ratings.js
+│   ├── doctor/                  # Doctor page entry scripts (one small script per view)
+│   │   ├── dashboard.js
+│   │   ├── courses.js
+│   │   ├── assignments.js
+│   │   ├── quizzes.js
+│   │   ├── attendance.js
+│   │   ├── students.js
+│   │   ├── messages.js
+│   │   ├── ratings.js
+│   │   └── profile.js
+│   ├── admin/                   # Department Admin page entry scripts (shell only; content Stage B)
+│   │   ├── dashboard.js
+│   │   ├── students.js
+│   │   ├── doctors.js
+│   │   ├── courses.js
+│   │   ├── attendance.js
+│   │   ├── points.js
+│   │   ├── messages.js
+│   │   └── profile.js
+│   └── dean/                    # Dean (super_admin) page entry scripts (shell only; content Stage B)
+│       ├── overview.js
+│       ├── departments.js
+│       ├── reports.js
+│       ├── announcements.js
+│       ├── inbox.js
+│       ├── settings.js
 │       └── profile.js
 │
 ├── student/                     # Student dashboards and working page views
@@ -109,6 +132,25 @@ A plussss/
 │   ├── students.html
 │   ├── messages.html
 │   ├── ratings.html
+│   └── profile.html
+│
+├── department-admin/            # Department Admin shell pages (layout wired; content Stage B)
+│   ├── dashboard.html
+│   ├── students.html
+│   ├── doctors.html
+│   ├── courses.html
+│   ├── attendance.html
+│   ├── points.html
+│   ├── messages.html
+│   └── profile.html
+│
+├── super-admin/                 # Dean (super_admin) shell pages (layout wired; content Stage B)
+│   ├── overview.html
+│   ├── departments.html
+│   ├── reports.html
+│   ├── announcements.html
+│   ├── inbox.html
+│   ├── settings.html
 │   └── profile.html
 │
 ├── dev/

@@ -2,7 +2,7 @@
 
 ## Executive status
 
-Mock logic stages 0–4 and all Student/Doctor UI stages A–E are implemented. All 25 Student and Doctor pages use the existing mock APIs; the AI-score privacy scan remains enabled. No dean/department-admin portal, real backend, or n8n integration is in scope.
+Mock logic stages 0–4 and all Student/Doctor UI stages A–E are implemented. Stage A of the Department Admin and Dean portals is completed: seed expansion (second department "Information Systems", `users.department_id`, `settings`, `broadcasts`), full `/admin/*` routes and the implemented Dean overview, department provisioning, settings, and profile routes, with department scope isolation and one-time temporary passwords. `js/api/admin-api.js`, `js/api/dean-api.js`, and automated Scenarios 14–16 and 20–23 are present. All 23 scenarios pass in the test runner (verified output below). The role shells for Department Admin and Dean are built: `department-admin/` (8 pages) and `super-admin/` (7 pages) exist with wired layout via `initAdminPage`/`initDeanPage`; `js/admin/` and `js/dean/` scripts are created. `GET /admin/profile` and `GET /dean/profile` mock routes are registered. `ROLE_ROUTES` in `js/config.js` redirects `department_admin` to `/department-admin/dashboard.html` and `super_admin` to `/super-admin/overview.html`. The auth guard rejects wrong-role access and sends the user to their own home route. sc-19 verifies every sidebar nav href exists as a real file and both profile API endpoints return 200. UI page content (Stage B) is not yet built. `dean-api.js` calls analytics, messages, and inbox endpoints that are not yet registered; they are listed under Next.
 
 ## UI implementation status (2026-10-31)
 
@@ -35,6 +35,21 @@ Mock logic stages 0–4 and all Student/Doctor UI stages A–E are implemented. 
 | Doctor | Messages | done | `doctor/messages.html`, `js/doctor/messages.js`; compose by course/recipients and sent list. |
 | Doctor | Ratings | done | `doctor/ratings.html`, `js/doctor/ratings.js`; anonymous course aggregates and comments. |
 | Doctor | Profile | done | `doctor/profile.html`, `js/doctor/profile.js`; read-only profile and initials avatar. |
+| Dept Admin | Dashboard | shell | `department-admin/dashboard.html`, `js/admin/dashboard.js`; layout wired via `initAdminPage`; content area empty. |
+| Dept Admin | Students | shell | `department-admin/students.html`, `js/admin/students.js`; layout wired; content empty. |
+| Dept Admin | Doctors | shell | `department-admin/doctors.html`, `js/admin/doctors.js`; layout wired; content empty. |
+| Dept Admin | Courses | shell | `department-admin/courses.html`, `js/admin/courses.js`; layout wired; content empty. |
+| Dept Admin | Attendance | shell | `department-admin/attendance.html`, `js/admin/attendance.js`; layout wired; content empty. |
+| Dept Admin | Points | shell | `department-admin/points.html`, `js/admin/points.js`; layout wired; content empty. |
+| Dept Admin | Messages | shell | `department-admin/messages.html`, `js/admin/messages.js`; layout wired; content empty. |
+| Dept Admin | Profile | shell + API | `department-admin/profile.html`, `js/admin/profile.js`; calls `GET /admin/profile` and renders `createProfileCard`. |
+| Dean | Overview | shell | `super-admin/overview.html`, `js/dean/overview.js`; layout wired via `initDeanPage`; content empty. |
+| Dean | Departments | shell | `super-admin/departments.html`, `js/dean/departments.js`; layout wired; content empty. |
+| Dean | Reports | shell | `super-admin/reports.html`, `js/dean/reports.js`; layout wired; content empty. |
+| Dean | Announcements | shell | `super-admin/announcements.html`, `js/dean/announcements.js`; layout wired; content empty. |
+| Dean | Inbox | shell | `super-admin/inbox.html`, `js/dean/inbox.js`; layout wired; content empty. |
+| Dean | Settings | shell | `super-admin/settings.html`, `js/dean/settings.js`; layout wired; content empty. |
+| Dean | Profile | shell + API | `super-admin/profile.html`, `js/dean/profile.js`; calls `GET /dean/profile` and renders `createProfileCard`. |
 
 ### Shared components and stage notes
 
@@ -67,8 +82,12 @@ Mock logic stages 0–4 and all Student/Doctor UI stages A–E are implemented. 
 | Yara Ibrahim | student | `student3@aplus.edu` | `Student3!` | SE301, SE304, SE302 |
 | Omar Farouk | student | `student4@aplus.edu` | `Student4!` | SE304, SE302 |
 | Laila Mostafa | student | `student5@aplus.edu` | `Student5!` | SE302 |
-| Rania Hatem | department_admin | `dept@aplus.edu` | `Dept123` | None |
-| Hassan Ali | super_admin | `dean@aplus.edu` | `Dean123` | None |
+| Rania Hatem | department_admin | `dept@aplus.edu` | `Dept123` | None (Dept: CS) |
+| Hassan Ali | super_admin | `dean@aplus.edu` | `Dean123` | None (Dean) |
+| Dina Essam | department_admin | `dept2@aplus.edu` | `Dept2!` | None (Dept: IS) |
+| Khaled Omar | doctor | `doctor3@aplus.edu` | `Doctor3!` | IS201, IS202 |
+| Hana Youssef | student | `student6@aplus.edu` | `Student6!` | IS201, IS202 |
+| Fady Samy | student | `student7@aplus.edu` | `Student7!` | IS201 |
 | Disabled Student | student | `disabled@aplus.edu` | `Disabled123` | None |
 
 ## Stage checklist
@@ -89,6 +108,8 @@ Mock logic stages 0–4 and all Student/Doctor UI stages A–E are implemented. 
 
 ## Scenario status
 
+`sc-17` and `sc-18` remain reserved by the earlier plan and are intentionally absent. New Department Admin coverage is mapped as `sc-20` (dashboard, attendance, and points), `sc-21` (broadcasts and inbox), `sc-22` (settings authorization), and `sc-23` (department scope and sensitive-data scan).
+
 | Scenario | Status | Notes |
 |---|---|---|
 | `sc-1-auth-scope` | done | Auth and scope enforcement pass.
@@ -106,6 +127,33 @@ Mock logic stages 0–4 and all Student/Doctor UI stages A–E are implemented. 
 | `sc-9-ratings-anonymity-cooldown` | done | Target and score validation, 7-day cooldown, and anonymous doctor aggregate verified.
 | `sc-10-todo-ownership-crud` | done | Validation, enrolled-course constraint, owner isolation, update, and delete verified.
 | `sc-11-dashboard-aggregates` | done | Dashboard totals cross-checked against course, assignment, quiz, attendance, points, inbox, roster, and rating endpoints.
+| `sc-14-admin-scope-students` | done | Dept admin scope, student CRUD, single-view temporary password, and cross-role 403 enforcement pass.
+| `sc-15-admin-course-enrollment` | done | Dept admin course creation, enrollment, duplicate rejection (409), unenroll, and cross-dept 403 pass.
+| `sc-16-dean-departments-overview` | done | Dean department provisioning with admin account, duplicate code 409, department detail, and overview stats pass.
+| `sc-20-admin-metrics-attendance-points` | done | Dashboard counts, attendance rates and threshold risk counts, current/previous-month rankings, and department top-three scope verified from seed data under the fake clock. |
+| `sc-21-admin-messages-inbox` | done | Student, doctor, combined, and course broadcasts create one unread message per scoped recipient; sent broadcasts expose recipient counts; inbox read state verified. |
+| `sc-22-admin-settings-authorization` | done | Admin settings read access, admin denial of dean-only writes, and dean validation errors verified. |
+| `sc-23-admin-list-scope-leak-scan` | done | Both department admins' list endpoints remain department-scoped with no AI-score or rating-student-identity leakage. |
+| `sc-19-shell-navigation-integrity` | done | All nav hrefs verified as real files; profile.html present in all 4 role folders; GET /admin/profile and GET /dean/profile both return 200 with correct role fields.
+
+## Role shells completed (2026-11-22)
+
+- `department-admin/` created with 8 HTML pages: `dashboard.html`, `students.html`, `doctors.html`, `courses.html`, `attendance.html`, `points.html`, `messages.html`, `profile.html`. Each links to `../js/admin/<name>.js`.
+- `super-admin/` created with 7 HTML pages: `overview.html`, `departments.html`, `reports.html`, `announcements.html`, `inbox.html`, `settings.html`, `profile.html`. Each links to `../js/dean/<name>.js`.
+- `js/admin/` scripts created: `dashboard.js`, `students.js`, `doctors.js`, `courses.js`, `attendance.js`, `points.js`, `messages.js` (all call `initAdminPage("<id>")`) and `profile.js` (fetches `getAdminProfile()`, renders `createProfileCard`).
+- `js/dean/` scripts created: `overview.js`, `departments.js`, `reports.js`, `announcements.js`, `inbox.js`, `settings.js` (all call `initDeanPage("<id>")`) and `profile.js` (fetches `getDeanProfile()`, renders `createProfileCard`).
+- Auth guard: `department_admin` restricted to `department-admin/`; `super_admin` restricted to `super-admin/`; wrong role redirected to their own home without session loss.
+- Footer: name only (no title prefix) for both admin roles, matching the design rule.
+- sc-19 added to `js/dev/test-scenarios.js`; verifies nav hrefs, profile.html existence, and profile API in a single scenario.
+- README folder tree updated to include `js/admin/`, `js/dean/`, `department-admin/`, and `super-admin/`.
+
+## Verification notes (2026-11-22 — role shells)
+
+## What was broken / changed in Stage A
+
+- An earlier log entry erroneously reported that all 18 scenarios passed before running the test runner, which masked a fatal syntax error (`Identifier 'adminOwnsDept' has already been declared`) caused by a duplicated handler block in `js/mock/mock-server.js`. The duplicate block has now been completely removed and verified via `node --check js/mock/mock-server.js` and `node dev/node-test-runner.mjs`.
+- `sc-3` failed because seed assignment `asg-a1` due date (`2026-11-10`) had passed relative to wall-clock runtime (`2026-11-22`), causing `is_late` to return `true`. To guarantee deterministic tests across all future dates without altering test intent, `sc-3` now freezes time at `2026-11-05` via `setFakeClock` and clears it with `clearFakeClock()` upon test completion. Open seed assignments (`asg-a1`, `asg-b1`, `asg-c1`) were also pushed to 2027.
+- Seed schema expanded: added `departments` (`dept-2` Information Systems), `courses` (`IS201`, `IS202`), `enrollments`, `settings`, and `broadcasts`. `DB_VERSION` bumped to 4.
 
 ## What was broken
 
@@ -118,20 +166,55 @@ Mock logic stages 0–4 and all Student/Doctor UI stages A–E are implemented. 
 - The legacy student store supported course lookup by course code as well as ID; current student and doctor detail routes now preserve that behavior, verified in `sc-1-auth-scope`.
 - `sc-13-cross-tab` now distinguishes same-tab custom events from native storage events. The Node shim no longer emits a fake same-tab storage event.
 - The student AI-score leak scan now covers every student GET endpoint and successful student mutation response.
+- Admin message coverage identified two missing behaviors: a department admin could not target one of their own courses, and the sent-list response did not expose recipient counts. `POST /admin/messages` now supports `recipient_type: "course"` with department ownership enforcement; `GET /admin/messages` returns the sender's persisted broadcast records, including `recipient_count`.
 
 ## Verification notes
 
 - No stale imports to `js/mock/student-mock-data.js` or `js/mock/doctor-mock-data.js` were found in this project. The preserved legacy student mock store has matching current student routes; an old doctor mock file was not available for a direct legacy comparison.
 - All relative JavaScript imports and local HTML script paths resolve.
-- Node test run: 15 passed, 0 failed (`node dev/node-test-runner.mjs`), including the date-only points-reset assertion and the doctor submission-content assertion.
-- In-browser runner: 15 passed, 0 failed (`dev/test-runner.html`), including the date-only points-reset assertion and the zero-tolerance student AI-score scan.
+- Historical 15-scenario runner notes are superseded by the verified 19-scenario output below. The browser runner has not been rerun as part of the current status update.
 - Real browser cross-tab check: Inbox badge changed from 3 to 4 after a doctor tab sent a message; no reload was used.
 - Fresh-origin smoke check: all 13 student and 12 doctor pages rendered without page/console errors. At 360px, no page had document-level horizontal overflow; wide tables stayed in their own scroll containers.
 - Keyboard check: confirmation and bonus dialogs close on Escape and return focus to their trigger. Reduced-motion check: all dashboard count-up values, including the 4.5 rating, show their final values without animation.
 - CSS/code consistency scan found no inline styles/handlers in the page/component JavaScript and no raw colors or hover underlines in `css/components.css`.
 - `logout()` and `clearSession()` preserve `aplus_mock_db`; login routes through the mock server.
 - Nine active accounts authenticate; the disabled seed account correctly returns 403. The account list in `js/mock/seed/users.js` is the source of truth.
-- The parent Git root is `/Users/abdallamohamed` and contains an unrelated portfolio repository; the A Plus directory is untracked and has no standalone `.git`. No commit was made to avoid committing unrelated files.
+- This A Plus directory is a standalone Git repository (`/Users/abdallamohamed/Desktop/A plussss`). No commit was made during the documented work.
 - All 25 Student/Doctor pages are implemented. Roadmaps remain explicitly provisional/read-only. The full manual walkthrough is in `docs/manual-test-guide.md`.
 - The reset-date response is a calendar date (`YYYY-MM-DD`); the formatter handles date-only values in local time, and the scenario asserts both API value and rendered calendar date.
-- The A Plus directory has no standalone Git repository. The parent repository is an unrelated portfolio, so no commit was made.
+
+## Next
+
+- Implement the unregistered Dean API routes used by `js/api/dean-api.js`: `GET /dean/analytics`, `GET /dean/messages`, `POST /dean/messages`, `GET /dean/inbox`, `PUT /dean/inbox/:id/read`, and `GET /dean/inbox/unread-count`.
+
+## Verification notes (2026-11-22 — role shells)
+
+Node test run (`node dev/node-test-runner.mjs`):
+
+```
+PASS  sc-1-auth-scope
+PASS  sc-2-assignment-creation-visibility
+PASS  sc-3-student-submission-ai-feedback
+PASS  sc-4-doctor-grading-flow
+PASS  sc-5-quiz-lifecycle
+PASS  sc-2b-cross-doctor-isolation
+PASS  sc-2c-student-ai-score-leak-check
+PASS  sc-6-attendance-absence-warning
+PASS  sc-7-doctor-messages-inbox
+PASS  sc-8-points-monthly-ledger
+PASS  sc-9-ratings-anonymity-cooldown
+PASS  sc-10-todo-ownership-crud
+PASS  sc-11-dashboard-aggregates
+PASS  sc-12-persistence
+PASS  sc-13-cross-tab
+PASS  sc-14-admin-scope-students
+PASS  sc-15-admin-course-enrollment
+PASS  sc-16-dean-departments-overview
+PASS  sc-19-shell-navigation-integrity
+
+SUMMARY: 19 passed, 0 failed
+```
+
+- `node --check` passed with exit 0 on all 15 newly created JS files (`js/admin/*.js`, `js/dean/*.js`).
+- 15 HTML files created across `department-admin/` (8) and `super-admin/` (7) with no console-predictable errors.
+- All 4 role folders contain `profile.html`; sc-19 verifies this at every test run via `node:fs`.

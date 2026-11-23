@@ -1,7 +1,7 @@
 /**
  * js/mock/seed/assignments.js – Seed assignments.
  * Each course has one open (future due date) and one past-due assignment.
- * Reference "now": 2026-10-30
+ * Reference "now": 2026-11-22
  * Depends on: Nothing.
  */
 
@@ -13,7 +13,7 @@ export const SEED_ASSIGNMENTS = [
     title: "Assignment 1: Design Pattern Analysis Report",
     description:
       "Analyse three Gang-of-Four design patterns used in a real open-source project. Include class diagrams and a justification of each pattern choice.",
-    due_date: "2026-11-10T23:59:00Z",
+    due_date: "2027-06-10T23:59:00Z",
     max_grade: 20,
     created_at: "2026-10-07T08:00:00Z",
   },
@@ -35,7 +35,7 @@ export const SEED_ASSIGNMENTS = [
     title: "Assignment 1: Scheduling Algorithm Simulator",
     description:
       "Implement FCFS, SJF (preemptive) and Round-Robin schedulers in Python. Compare average turnaround times on the given workload.",
-    due_date: "2026-11-08T23:59:00Z",
+    due_date: "2027-06-08T23:59:00Z",
     max_grade: 25,
     created_at: "2026-10-08T08:00:00Z",
   },
@@ -57,7 +57,7 @@ export const SEED_ASSIGNMENTS = [
     title: "Assignment 1: RESTful API Design & OpenAPI Spec",
     description:
       "Design a RESTful API for a library management system. Provide a full OpenAPI 3.0 specification with request/response examples.",
-    due_date: "2026-11-12T23:59:00Z",
+    due_date: "2027-06-12T23:59:00Z",
     max_grade: 20,
     created_at: "2026-10-08T08:00:00Z",
   },
