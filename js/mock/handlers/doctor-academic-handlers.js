@@ -38,7 +38,7 @@ export function handleDoctorDashboard(db, user) {
       const absences = db.attendance_records.filter(
         (r) => sessionIds.includes(r.session_id) && r.student_id === sid && r.status === "absent"
       ).length;
-      if (absences >= ABSENCE_WARNING_THRESHOLD) atRisk++;
+      if (absences >= (db.settings?.absence_warning_threshold ?? ABSENCE_WARNING_THRESHOLD)) atRisk++;
     });
   });
 

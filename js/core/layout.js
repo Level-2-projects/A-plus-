@@ -20,7 +20,7 @@ import { ADMIN_NAV_ITEMS } from "../config/admin-nav.js";
 import { DEAN_NAV_ITEMS } from "../config/dean-nav.js";
 import { getCurrentUser, logout } from "../api.js";
 import { getUnreadCount, getInbox } from "../api/student-api.js";
-import { getDoctorPendingSubmissionsCount } from "../api/doctor-api.js";
+import { getDoctorPendingSubmissionsCount, getDoctorUnreadCount, getDoctorInbox } from "../api/doctor-api.js";
 import { getAdminUnreadCount, getAdminInbox } from "../api/admin-api.js";
 import { getDeanUnreadCount, getDeanInbox } from "../api/dean-api.js";
 import { requireAuth } from "./auth-guard.js";
@@ -501,15 +501,30 @@ function attachLogoutHandler() {
 async function loadDynamicBadges(role = "student") {
   if (role === "doctor") {
     try {
-      const res = await getDoctorPendingSubmissionsCount();
+      const [res, inbox] = await Promise.all([getDoctorPendingSubmissionsCount(), getDoctorUnreadCount()]);
       const count = res?.pending_count || 0;
+      const unreadMessagesCount = inbox?.unread_count || 0;
       const assignmentsBadge = document.getElementById("nav-doctor-assignments-badge");
       if (assignmentsBadge) {
         assignmentsBadge.textContent = String(count);
         assignmentsBadge.hidden = count === 0;
       }
+      const messagesBadge = document.getElementById("nav-doctor-messages-badge");
+      if (messagesBadge) {
+        messagesBadge.textContent = String(unreadMessagesCount);
+        messagesBadge.hidden = unreadMessagesCount === 0;
+      }
+      const bellDot = document.getElementById("bell-dot");
+      const notifHeaderBadge = document.getElementById("notif-count-badge");
+      if (bellDot) {
+        bellDot.hidden = unreadMessagesCount === 0;
+      }
+      if (notifHeaderBadge) {
+        notifHeaderBadge.textContent = `${unreadMessagesCount} unread`;
+        notifHeaderBadge.hidden = unreadMessagesCount === 0;
+      }
     } catch (err) {
-      console.warn("[Layout] Failed to load doctor pending reviews count:", err);
+      console.warn("[Layout] Failed to load doctor badges:", err);
     }
     return;
   }
@@ -595,6 +610,8 @@ async function loadNotificationDropdown(role = "student") {
     let messages = [];
     if (role === "student") {
       messages = await getInbox();
+    } else if (role === "doctor") {
+      messages = await getDoctorInbox();
     } else if (role === "department_admin") {
       messages = await getAdminInbox();
     } else if (role === "super_admin") {
@@ -625,7 +642,7 @@ async function loadNotificationDropdown(role = "student") {
       item.className = `notif-item${msg.is_read ? "" : " is-unread"}`;
       const link = document.createElement("a");
       link.className = "notif-item-link";
-      const targetPage = role === "department_admin" ? "messages.html" : "inbox.html";
+      const targetPage = (role === "department_admin" || role === "doctor") ? "messages.html" : "inbox.html";
       link.href = `${targetPage}?id=${encodeURIComponent(msg.id)}`;
       const meta = document.createElement("div");
       meta.className = "notif-meta-row";

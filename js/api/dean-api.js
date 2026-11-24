@@ -100,6 +100,12 @@ export async function getDeanAnalytics(period = "all_time") {
   return request(`/dean/analytics${query}`);
 }
 
+/** Retrieves CSV-ready dean report rows without student identities or AI scores. */
+export async function getDeanReports(period = "all_time") {
+  const query = period ? `?period=${encodeURIComponent(period)}` : "";
+  return request(`/dean/reports${query}`);
+}
+
 /* ---------- 3. Announcements & Messaging ---------- */
 
 /**

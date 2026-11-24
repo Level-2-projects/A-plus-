@@ -575,7 +575,7 @@ export const SCENARIOS = [
     category: "Attendance & Alerts",
     run: async () => {
       mockDb.resetToSeed();
-      setFakeClock("2026-10-30T12:00:00.000Z");
+      setFakeClock("2026-11-30T12:00:00.000Z");
 
       try {
         const doctorToken = "aplus-mock-usr-6";
@@ -668,7 +668,7 @@ export const SCENARIOS = [
     category: "Messages & Notifications",
     run: async () => {
       mockDb.resetToSeed();
-      setFakeClock("2026-10-30T12:00:00.000Z");
+      setFakeClock("2026-11-30T12:00:00.000Z");
 
       try {
         const doctorToken = "aplus-mock-usr-6";
@@ -1458,6 +1458,41 @@ export const SCENARIOS = [
   },
 
   /* -------------------------------------------------------------
+     Scenario 24: Admin Student Academic Level
+  ------------------------------------------------------------- */
+  {
+    id: "sc-24-admin-student-level",
+    title: "Scenario 24: Admin Student Academic Level Validation and Persistence",
+    category: "Department Admin",
+    run: async () => {
+      mockDb.resetToSeed();
+      clearFakeClock();
+
+      const token = "aplus-mock-usr-8";
+      const invalid = mockServerHandle("POST", "/admin/students", {
+        full_name: "Level Check",
+        email: "level-check@aplus.edu",
+        university_id: "CS2023998",
+        level: "9",
+      }, token);
+      assertEqual(invalid.status, 422, "Invalid student level returns 422");
+      const created = mockServerHandle("POST", "/admin/students", {
+        full_name: "Level Check",
+        email: "level-check@aplus.edu",
+        university_id: "CS2023998",
+        level: "4",
+      }, token);
+      assertEqual(created.status, 201, "Student with a valid level is created");
+      assertEqual(created.data.student.level, "4", "Created response preserves level");
+      const updated = mockServerHandle("PATCH", `/admin/students/${created.data.student.id}`, { level: "5" }, token);
+      assertEqual(updated.status, 200, "Student level update returns 200");
+      assertEqual(updated.data.level, "5", "Updated response preserves level");
+      const listed = mockServerHandle("GET", "/admin/students", null, token);
+      assertEqual(listed.data.find((student) => student.id === created.data.student.id)?.level, "5", "Student list preserves updated level");
+    },
+  },
+
+  /* -------------------------------------------------------------
      Scenario 19: Shell Navigation Integrity
      Verifies that every sidebar nav href resolves to a real HTML
      file under the correct role folder, that profile.html exists
@@ -1546,6 +1581,345 @@ export const SCENARIOS = [
           assert(existsSync(filePath), `profile.html missing for role folder "${folder}"`);
         }
       }
+    },
+  },
+  /* -------------------------------------------------------------
+     Scenarios 25–27: Dean analytics, active settings, and privacy
+  ------------------------------------------------------------- */
+  {
+    id: "sc-25-dean-analytics-reports",
+    title: "Scenario 25: Dean Analytics and CSV-ready Reports",
+    category: "Dean",
+    run: async () => {
+      mockDb.resetToSeed();
+      setFakeClock("2026-11-30T12:00:00.000Z");
+      const token = "aplus-mock-usr-9";
+      const analytics = mockServerHandle("GET", "/dean/analytics?period=all_time", null, token);
+      assertEqual(analytics.status, 200, "Dean analytics returns 200");
+      assertEqual(analytics.data.departments.length, mockDb.load().departments.length, "Analytics has every department");
+      assertEqual(analytics.data.at_risk_count, analytics.data.departments.reduce((sum, department) => sum + department.at_risk_count, 0), "College risk count equals department sum");
+      const month = mockServerHandle("GET", "/dean/analytics?period=this_month", null, token);
+      assertEqual(month.status, 200, "This-month analytics returns 200");
+      assert(month.data.departments.every((department) => department.top_students.length === 2), "Analytics includes current and previous-month rankings");
+      assertEqual(month.data.attendance_rate, null, "Period filter excludes October attendance from November");
+      const reports = mockServerHandle("GET", "/dean/reports?period=all_time", null, token);
+      assertEqual(reports.status, 200, "Dean reports returns 200");
+      assert(reports.data.attendance.length === mockDb.load().courses.length, "Report has one attendance row per course");
+      assertEqual(mockServerHandle("GET", "/dean/analytics?period=bad", null, token).status, 422, "Invalid period is rejected");
+      clearFakeClock();
+    },
+  },
+  {
+    id: "sc-26-dean-settings-take-effect",
+    title: "Scenario 26: Dean Settings Authorization, Validation, and Immediate Effects",
+    category: "Dean",
+    run: async () => {
+      mockDb.resetToSeed();
+      setFakeClock("2026-10-30T12:00:00.000Z");
+      const dean = "aplus-mock-usr-9";
+      const admin = "aplus-mock-usr-8";
+      assertEqual(mockServerHandle("PATCH", "/dean/settings", { absence_warning_threshold: 1, rating_cooldown_days: 30, points_attendance_present: 17 }, dean).status, 200, "Dean updates valid settings");
+      assertEqual(mockServerHandle("PATCH", "/dean/settings", { absence_warning_threshold: 3 }, admin).status, 403, "Admin cannot change dean settings");
+      assertEqual(mockServerHandle("PATCH", "/dean/settings", { rating_cooldown_days: 366 }, dean).status, 422, "Out-of-range settings are rejected");
+      const attendance = mockServerHandle("POST", "/doctor/attendance", { course_id: "crs-a", date: "2026-10-30", records: [{ student_id: "usr-1", status: "absent" }, { student_id: "usr-2", status: "present" }] }, "aplus-mock-usr-6");
+      assertEqual(attendance.status, 201, "Doctor records attendance under new threshold");
+      const db = mockDb.load();
+      assert(db.messages.some((message) => message.recipient_id === "usr-1" && message.subject.startsWith("Absence Warning:")), "New threshold creates warning immediately");
+      assertEqual(db.points_ledger.find((entry) => entry.reference_id === attendance.data.session_id && entry.student_id === "usr-2")?.points, 17, "New attendance points value applies immediately");
+      assertEqual(mockServerHandle("POST", "/student/ratings", { target_type: "doctor", target_id: "usr-6", course_id: "crs-a", score: 5 }, "aplus-mock-usr-1").status, 429, "New rating cooldown applies immediately");
+      clearFakeClock();
+    },
+  },
+  {
+    id: "sc-27-dean-response-privacy-scan",
+    title: "Scenario 27: Dean Responses Contain No AI Scores or Student Identities",
+    category: "Security & Permissions",
+    run: async () => {
+      mockDb.resetToSeed();
+      const token = "aplus-mock-usr-9";
+      for (const path of ["/dean/overview/summary", "/dean/departments", "/dean/departments/dept-1", "/dean/analytics?period=all_time", "/dean/reports?period=all_time", "/dean/settings", "/dean/profile"]) {
+        const response = mockServerHandle("GET", path, null, token);
+        assertEqual(response.status, 200, `${path} returns 200`);
+        assertEqual(scanForbiddenKeys(response.data, /ai_score/i).length, 0, `${path} exposes no AI score`);
+        assertEqual(scanForbiddenKeys(response.data, /student(_id|_name|_email|_identity)?$/i).length, 0, `${path} exposes no student identity`);
+      }
+    },
+  },
+  /* -------------------------------------------------------------
+     Scenario 28: Reproduces admin-to-doctor delivery visibility & full doctor inbox lifecycle
+  ------------------------------------------------------------- */
+  {
+    id: "sc-28-admin-doctor-inbox-delivery",
+    title: "Scenario 28: Department Admin Broadcast Reaches the Doctor Inbox",
+    category: "Department Admin",
+    run: async () => {
+      mockDb.resetToSeed();
+      const adminToken = "aplus-mock-usr-8";
+      const doctor1Token = "aplus-mock-usr-6"; // Dr. Ahmed Mansour (dept-1)
+      const doctor2Token = "aplus-mock-usr-7"; // Dr. Sara Nabil (dept-1)
+      const otherDepartmentDoctorToken = "aplus-mock-usr-12"; // Dr. Khaled Omar (dept-2)
+      const studentToken = "aplus-mock-usr-1"; // Karim Adel (dept-1)
+
+      // Initial unread count for doctor 1
+      const initialUnreadDoc1 = mockServerHandle("GET", "/doctor/inbox/unread-count", null, doctor1Token);
+      assertEqual(initialUnreadDoc1.status, 200, "Doctor unread count endpoint returns 200");
+      const baseUnreadDoc1 = initialUnreadDoc1.data.unread_count;
+
+      // (a) Admin message to "doctors" reaches every doctor of that department as unread
+      const sentDoctors = mockServerHandle("POST", "/admin/messages", { recipient_type: "doctors", subject: "Faculty meeting", body: "Please attend at noon." }, adminToken);
+      assertEqual(sentDoctors.status, 201, "Admin can send to department doctors");
+
+      const inboxDoc1 = mockServerHandle("GET", "/doctor/inbox", null, doctor1Token);
+      assertEqual(inboxDoc1.status, 200, "Doctor inbox route is available");
+      const deliveredDoc1 = inboxDoc1.data.find((message) => message.subject === "Faculty meeting");
+      assert(deliveredDoc1 && !deliveredDoc1.is_read, "Doctor 1 receives unread admin broadcast");
+      assertEqual(deliveredDoc1.sender_name, "Rania Hatem", "Doctor sees admin sender name");
+      assertEqual(deliveredDoc1.sender_type, "admin", "Doctor sees admin sender role");
+
+      const inboxDoc2 = mockServerHandle("GET", "/doctor/inbox", null, doctor2Token);
+      assertEqual(inboxDoc2.status, 200, "Doctor 2 inbox route is available");
+      const deliveredDoc2 = inboxDoc2.data.find((message) => message.subject === "Faculty meeting");
+      assert(deliveredDoc2 && !deliveredDoc2.is_read, "Doctor 2 receives unread admin broadcast");
+
+      // (b) No doctor of another department receives it
+      const foreignInbox = mockServerHandle("GET", "/doctor/inbox", null, otherDepartmentDoctorToken);
+      assertEqual(foreignInbox.status, 200, "Other department doctor inbox route is available");
+      assert(!foreignInbox.data.some((message) => message.subject === "Faculty meeting"), "Other department doctors receive nothing");
+
+      // (c) "both" reaches the department's students too
+      const sentBoth = mockServerHandle("POST", "/admin/messages", { recipient_type: "both", subject: "Campus closure notice", body: "Campus closed tomorrow." }, adminToken);
+      assertEqual(sentBoth.status, 201, "Admin can send to both students and doctors");
+      const studentInbox = mockServerHandle("GET", "/student/inbox", null, studentToken);
+      assertEqual(studentInbox.status, 200, "Student inbox returns 200");
+      assert(studentInbox.data.some((m) => m.subject === "Campus closure notice"), "Department student received 'both' message");
+      const doc1InboxAfterBoth = mockServerHandle("GET", "/doctor/inbox", null, doctor1Token);
+      assert(doc1InboxAfterBoth.data.some((m) => m.subject === "Campus closure notice"), "Doctor 1 received 'both' message");
+
+      // (d) Unread count rises, and mark-read lowers it
+      const unreadAfterSent = mockServerHandle("GET", "/doctor/inbox/unread-count", null, doctor1Token);
+      assertEqual(unreadAfterSent.status, 200, "Doctor unread count returns 200");
+      assertEqual(unreadAfterSent.data.unread_count, baseUnreadDoc1 + 2, "Unread count rose by 2 after 2 received messages");
+
+      const markReadRes = mockServerHandle("PUT", `/doctor/inbox/${deliveredDoc1.id}/read`, null, doctor1Token);
+      assertEqual(markReadRes.status, 200, "Doctor marks message as read");
+      const unreadAfterMarkRead = mockServerHandle("GET", "/doctor/inbox/unread-count", null, doctor1Token);
+      assertEqual(unreadAfterMarkRead.data.unread_count, baseUnreadDoc1 + 1, "Unread count lowered by 1 after mark-read");
+
+      // (e) Doctor A cannot read or mark Doctor B's message (403 or 404)
+      const markOtherDocMsg = mockServerHandle("PUT", `/doctor/inbox/${deliveredDoc2.id}/read`, null, doctor1Token);
+      assert(markOtherDocMsg.status === 403 || markOtherDocMsg.status === 404, "Doctor A cannot mark Doctor B's message as read");
+
+      // (f) The doctor's own sent messages never appear in the doctor's inbox
+      const sentByDoctor = mockServerHandle("POST", "/doctor/messages", { course_id: "crs-a", type: "notice", subject: "Assignment extension", body: "Extended by 2 days." }, doctor1Token);
+      assertEqual(sentByDoctor.status, 201, "Doctor sent message to course students");
+      const doc1InboxAfterSend = mockServerHandle("GET", "/doctor/inbox", null, doctor1Token);
+      assert(!doc1InboxAfterSend.data.some((m) => m.subject === "Assignment extension"), "Doctor's sent message never appears in doctor's inbox");
+
+      // (g) No doctor inbox response contains an ai_score key or student identities
+      const forbiddenScorePattern = /(ai_score|score_out_of_10)/i;
+      const forbiddenStudentPattern = /student(_id|_name|_email|_identity)?$/i;
+      for (const endpoint of ["/doctor/inbox", "/doctor/inbox/unread-count"]) {
+        const res = mockServerHandle("GET", endpoint, null, doctor1Token);
+        assertEqual(scanForbiddenKeys(res.data, forbiddenScorePattern).length, 0, `${endpoint} contains no ai_score`);
+        assertEqual(scanForbiddenKeys(res.data, forbiddenStudentPattern).length, 0, `${endpoint} contains no student identities`);
+      }
+    },
+  },
+  /* -------------------------------------------------------------
+     Scenario 29: Dean Announcements, Dean Inbox, and Admin-to-Dean Messaging
+  ------------------------------------------------------------- */
+  {
+    id: "sc-29-dean-messaging-and-inbox",
+    title: "Scenario 29: Dean Announcements, Dean Inbox, and Admin-to-Dean Messaging",
+    category: "Dean",
+    run: async () => {
+      mockDb.resetToSeed();
+      const deanToken = "aplus-mock-usr-9"; // Prof. Hassan Ali
+      const adminToken = "aplus-mock-usr-8"; // Rania Hatem (dept-1)
+      const doctorToken = "aplus-mock-usr-6"; // Dr. Ahmed Mansour (dept-1)
+      const studentToken = "aplus-mock-usr-1"; // Karim Adel (dept-1)
+
+      // 1. Dean broadcasts to college
+      const sendCollege = mockServerHandle("POST", "/dean/messages", { audience: "college", subject: "Convocation Ceremony", body: "Annual convocation next month." }, deanToken);
+      assertEqual(sendCollege.status, 201, "Dean college broadcast returns 201");
+      assert(sendCollege.data.sent_count > 0, "Broadcast has positive recipient count");
+
+      // Verify sent broadcasts list
+      const sentList = mockServerHandle("GET", "/dean/messages", null, deanToken);
+      assertEqual(sentList.status, 200, "Dean sent list returns 200");
+      assert(sentList.data.some((b) => b.subject === "Convocation Ceremony"), "Broadcast appears in Dean sent list");
+
+      // Verify delivery to admin, doctor, and student
+      const adminInbox = mockServerHandle("GET", "/admin/inbox", null, adminToken);
+      assert(adminInbox.data.some((m) => m.subject === "Convocation Ceremony" && m.sender_type === "dean"), "Admin received dean announcement");
+      const doctorInbox = mockServerHandle("GET", "/doctor/inbox", null, doctorToken);
+      assert(doctorInbox.data.some((m) => m.subject === "Convocation Ceremony" && m.sender_type === "dean"), "Doctor received dean announcement");
+      const studentInbox = mockServerHandle("GET", "/student/inbox", null, studentToken);
+      assert(studentInbox.data.some((m) => m.subject === "Convocation Ceremony"), "Student received dean announcement");
+
+      // 2. Department admin targets 'dean'
+      const sendToDean = mockServerHandle("POST", "/admin/messages", { recipient_type: "dean", subject: "Budget Report", body: "Attached Q4 budget." }, adminToken);
+      assertEqual(sendToDean.status, 201, "Admin sends message to dean");
+
+      // 3. Dean inbox receives message, checks unread count, and marks read
+      const unreadBefore = mockServerHandle("GET", "/dean/inbox/unread-count", null, deanToken);
+      assertEqual(unreadBefore.status, 200, "Dean unread count returns 200");
+      assert(unreadBefore.data.unread_count > 0, "Dean has unread message");
+
+      const deanInbox = mockServerHandle("GET", "/dean/inbox", null, deanToken);
+      assertEqual(deanInbox.status, 200, "Dean inbox returns 200");
+      const budgetMsg = deanInbox.data.find((m) => m.subject === "Budget Report");
+      assert(Boolean(budgetMsg), "Budget report is in Dean inbox");
+      assertEqual(budgetMsg.sender_name, "Rania Hatem", "Sender name is admin");
+
+      const markReadRes = mockServerHandle("PUT", `/dean/inbox/${budgetMsg.id}/read`, null, deanToken);
+      assertEqual(markReadRes.status, 200, "Dean marks message as read");
+
+      const unreadAfter = mockServerHandle("GET", "/dean/inbox/unread-count", null, deanToken);
+      assertEqual(unreadAfter.data.unread_count, unreadBefore.data.unread_count - 1, "Unread count decremented");
+    },
+  },
+  /* -------------------------------------------------------------
+     Scenario 30: Four-Role End-to-End Workflow
+  ------------------------------------------------------------- */
+  {
+    id: "sc-30-four-role-end-to-end",
+    title: "Scenario 30: Complete End-to-End Workflow Across All Four Roles",
+    category: "Integration",
+    run: async () => {
+      mockDb.resetToSeed();
+      setFakeClock("2026-11-20T10:00:00.000Z");
+
+      const deanToken = "aplus-mock-usr-9";
+
+      // 1. Dean creates a new department with its admin
+      const newDeptRes = mockServerHandle("POST", "/dean/departments", {
+        name: "Cybersecurity",
+        code: "CYBER",
+        admin_full_name: "Tarek Zaki",
+        admin_email: "tarek@aplus.edu",
+        admin_university_id: "ADM2026009",
+      }, deanToken);
+      assertEqual(newDeptRes.status, 201, "Dean creates department");
+      const deptId = newDeptRes.data.department.id;
+      const adminId = newDeptRes.data.admin.id;
+      const tempPassword = newDeptRes.data.temp_password;
+      assert(Boolean(tempPassword), "Temporary password returned");
+
+      // 2. Admin logs in with temporary password
+      const loginRes = mockServerHandle("POST", "/auth/login", { identifier: "tarek@aplus.edu", password: tempPassword });
+      assertEqual(loginRes.status, 200, "New admin logs in with temporary password");
+      const adminToken = `aplus-mock-${adminId}`;
+
+      // 3. Admin creates a doctor, a course, and a student; enrolls student in course
+      const newDocRes = mockServerHandle("POST", "/admin/doctors", {
+        full_name: "Dr. Mona Fikry",
+        email: "mona@aplus.edu",
+        university_id: "DR2026001",
+      }, adminToken);
+      assertEqual(newDocRes.status, 201, "Admin creates doctor");
+      const docId = newDocRes.data.doctor.id;
+      const doctorToken = `aplus-mock-${docId}`;
+
+      const newCourseRes = mockServerHandle("POST", "/admin/courses", {
+        code: "CY301",
+        title: "Network Defense",
+        doctor_id: docId,
+        credit_hours: 3,
+      }, adminToken);
+      assertEqual(newCourseRes.status, 201, "Admin creates course");
+      const courseId = newCourseRes.data.id;
+
+      const newStudentRes = mockServerHandle("POST", "/admin/students", {
+        full_name: "Samy Nader",
+        email: "samy@aplus.edu",
+        university_id: "CS2026001",
+        level: "2",
+      }, adminToken);
+      assertEqual(newStudentRes.status, 201, "Admin creates student");
+      const studentId = newStudentRes.data.student.id;
+      const studentToken = `aplus-mock-${studentId}`;
+
+      const enrollRes = mockServerHandle("POST", `/admin/courses/${courseId}/enroll`, { student_id: studentId }, adminToken);
+      assertEqual(enrollRes.status, 201, "Admin enrolls student in course");
+
+      // 4. Doctor creates an assignment
+      const asgRes = mockServerHandle("POST", "/doctor/assignments", {
+        course_id: courseId,
+        title: "Firewall Configuration",
+        due_date: "2026-11-25T23:59:00Z",
+        max_grade: 20,
+      }, doctorToken);
+      assertEqual(asgRes.status, 201, "Doctor creates assignment");
+      const asgId = asgRes.data.id;
+
+      // 5. Student submits assignment once and gets instant feedback without score
+      const submitRes = mockServerHandle("POST", `/student/assignments/${asgId}/submit`, {
+        content: "I configured iptables rules to block port 23 and allow port 443.",
+      }, studentToken);
+      assertEqual(submitRes.status, 201, "Student submits assignment");
+      assert(Boolean(submitRes.data.ai_feedback), "AI feedback provided to student");
+      assertEqual(scanForbiddenKeys(submitRes.data, /(ai_score|score_out_of_10)/i).length, 0, "No score returned to student");
+
+      // 6. Doctor grades it
+      const docAsgList = mockServerHandle("GET", "/doctor/assignments", null, doctorToken);
+      const asgData = docAsgList.data.find((a) => a.id === asgId);
+      const sub = asgData.submissions.find((s) => s.student_id === studentId);
+      assert(Boolean(sub), "Doctor sees submission");
+      assert(typeof sub.ai_evaluation?.score_out_of_10 === "number", "Doctor sees AI score");
+
+      const gradeRes = mockServerHandle("POST", `/doctor/submissions/${sub.id}/grade`, {
+        final_grade: 19,
+        doctor_feedback: "Excellent rule definitions.",
+      }, doctorToken);
+      assertEqual(gradeRes.status, 200, "Doctor sets final grade");
+
+      // Student sees graded assignment
+      const studentAsg = mockServerHandle("GET", `/student/assignments/${asgId}`, null, studentToken);
+      assertEqual(studentAsg.data.final_grade, 19, "Student sees doctor final grade");
+      assertEqual(studentAsg.data.doctor_feedback, "Excellent rule definitions.", "Student sees doctor feedback");
+
+      // 7. Admin and Dean numbers change
+      const adminDash = mockServerHandle("GET", "/admin/dashboard/summary", null, adminToken);
+      assertEqual(adminDash.data.student_count, 1, "Admin dashboard reflects new student count");
+      assertEqual(adminDash.data.doctor_count, 1, "Admin dashboard reflects new doctor count");
+      assertEqual(adminDash.data.course_count, 1, "Admin dashboard reflects new course count");
+
+      const deanOverview = mockServerHandle("GET", "/dean/overview/summary", null, deanToken);
+      assert(deanOverview.data.dept_count >= 3, "Dean overview reflects new department");
+
+      // 8. Dean lowers absence threshold and next attendance triggers warning in student's inbox
+      const patchSettings = mockServerHandle("PATCH", "/dean/settings", { absence_warning_threshold: 1 }, deanToken);
+      assertEqual(patchSettings.status, 200, "Dean sets absence threshold to 1");
+
+      const recordAtt = mockServerHandle("POST", "/doctor/attendance", {
+        course_id: courseId,
+        date: "2026-11-20",
+        records: [{ student_id: studentId, status: "absent" }],
+      }, doctorToken);
+      assertEqual(recordAtt.status, 201, "Doctor records absent attendance");
+
+      const studentInbox = mockServerHandle("GET", "/student/inbox", null, studentToken);
+      assert(studentInbox.data.some((m) => m.type === "warning" && m.subject.includes("Absence Warning")), "Student received absence warning at new threshold");
+
+      // 9. Dean announces, and student, doctor, and admin each receive it
+      const announceRes = mockServerHandle("POST", "/dean/messages", {
+        audience: "college",
+        subject: "Midterm Guidance",
+        body: "All faculty and students review the exam schedule.",
+      }, deanToken);
+      assertEqual(announceRes.status, 201, "Dean sends college announcement");
+
+      const studentAnnounce = mockServerHandle("GET", "/student/inbox", null, studentToken);
+      assert(studentAnnounce.data.some((m) => m.subject === "Midterm Guidance"), "Student received dean announcement");
+
+      const doctorAnnounce = mockServerHandle("GET", "/doctor/inbox", null, doctorToken);
+      assert(doctorAnnounce.data.some((m) => m.subject === "Midterm Guidance"), "Doctor received dean announcement");
+
+      const adminAnnounce = mockServerHandle("GET", "/admin/inbox", null, adminToken);
+      assert(adminAnnounce.data.some((m) => m.subject === "Midterm Guidance"), "Admin received dean announcement");
+
+      clearFakeClock();
     },
   },
 ];

@@ -39,6 +39,7 @@ export async function getAdminDashboard() {
  *   full_name: string,
  *   email: string,
  *   university_id: string,
+ *   level: string|null,
  *   disabled: boolean,
  *   enrolled_courses: string[]
  * }>>}
@@ -51,7 +52,7 @@ export async function getAdminStudents(courseId) {
 /**
  * Creates a new student record in the administrator's department.
  *
- * @param {{ full_name: string, email: string, university_id: string }} data
+ * @param {{ full_name: string, email: string, university_id: string, level: string }} data
  * @returns {Promise<{ student: object, temp_password: string }>}
  */
 export async function createAdminStudent(data) {
@@ -65,7 +66,7 @@ export async function createAdminStudent(data) {
  * Updates a student profile within the admin's department.
  *
  * @param {string} id - Student ID.
- * @param {{ full_name?: string, email?: string, university_id?: string }} data
+ * @param {{ full_name?: string, email?: string, university_id?: string, level?: string }} data
  * @returns {Promise<object>}
  */
 export async function updateAdminStudent(id, data) {

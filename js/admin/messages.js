@@ -1,10 +1,23 @@
-/**
- * js/admin/messages.js – Department Admin Department Messages shell view.
- * Initializes the layout shell; content area stays empty until Stage B.
- *
- * Depends on: js/core/layout.js
- */
-
-import { initAdminPage } from "../core/layout.js";
-
-initAdminPage("messages");
+/** Department message inbox, sent broadcasts, and compose view using existing APIs. */
+import { getAdminCourses, getAdminInbox, getAdminMessages, markAdminMessageRead, sendAdminMessage } from "../api/admin-api.js";
+import { createEmptyState } from "../components/empty-state.js";
+import { createErrorState } from "../components/error-state.js";
+import { createFormField, showFieldErrors } from "../components/form-field.js";
+import { createSkeleton } from "../components/skeleton.js";
+import { createTabs } from "../components/tabs.js";
+import { showToast } from "../components/toast.js";
+import { initAdminPage, setPageTitle } from "../core/layout.js";
+const root=document.getElementById("page-content");let inbox=[];let sent=[];let courses=[];let active="received";
+/** Mounts the department messages workspace. */
+async function start(){initAdminPage("messages");if(!root||!document.querySelector(".app-shell"))return;setPageTitle("Department Messages");root.append(createSkeleton({lines:7}));await load();}
+/** Loads inbox, sent broadcasts, and scope-limited course audiences. */
+async function load(){try{[inbox,sent,courses]=await Promise.all([getAdminInbox(),getAdminMessages(),getAdminCourses()]);render();}catch(e){root.replaceChildren(createErrorState(e.message||"Messages could not be loaded.",load));}}
+/** Renders the selected tab. */
+function render(){root.replaceChildren();const p=document.createElement("section");p.className="page-stack";const h=document.createElement("h2");h.textContent="Department Messages";p.append(h,createTabs([{value:"received",label:"Received"},{value:"sent",label:"Sent"},{value:"compose",label:"Compose"}],active,value=>{active=value;render();},"Messages"));if(active==="received")p.append(received());else if(active==="sent")p.append(sentView());else p.append(compose());root.append(p);}
+/** Renders received inbox messages and marks unread messages read when opened. */
+function received(){if(!inbox.length)return createEmptyState("Your inbox is clear.");const list=document.createElement("div");list.className="page-stack";inbox.forEach(message=>{const item=document.createElement("button");item.type="button";item.className="card card--interactive";item.textContent=`${message.sender_name}: ${message.subject}`;if(!message.is_read)item.prepend(Object.assign(document.createElement("span"),{className:"status status-warning",textContent:"Unread"}));item.addEventListener("click",async()=>{if(!message.is_read){await markAdminMessageRead(message.id);await load();}showToast(message.body,{kind:"info"});});list.append(item);});return list;}
+/** Renders persisted broadcasts with audience and recipient count. */
+function sentView(){if(!sent.length)return createEmptyState("No broadcasts have been sent.");const list=document.createElement("div");list.className="page-stack";sent.forEach(b=>{const item=document.createElement("article");item.className="card";const h=document.createElement("h3");h.textContent=b.subject;const p=document.createElement("p");p.textContent=`Audience: ${b.audience} · Recipients: ${b.recipient_count}`;item.append(h,p);list.append(item);});return list;}
+/** Renders compose fields limited to department audiences; dean is deliberately excluded. */
+function compose(){const f=document.createElement("form");f.className="card page-stack";const audience=createFormField({label:"Audience",name:"recipient_type",options:[{value:"students",text:"Students"},{value:"doctors",text:"Doctors"},{value:"both",text:"Students and doctors"},{value:"course",text:"One course"},{value:"dean",text:"The Dean"}]});const course=createFormField({label:"Course",name:"course_id",options:[{value:"",text:"Choose a course"},...courses.map(c=>({value:c.id,text:`${c.code} — ${c.title}`}))]});const subject=createFormField({label:"Subject",name:"subject",required:true});const body=createFormField({label:"Message",name:"body",multiline:true,required:true});const msg=document.createElement("p");msg.className="form-message";msg.hidden=true;const send=document.createElement("button");send.type="submit";send.className="btn btn-primary";send.textContent="Send message";f.append(audience,course,subject,body,msg,send);const sync=()=>{course.hidden=audience.querySelector("select").value!=="course";};audience.querySelector("select").addEventListener("change",sync);sync();f.addEventListener("submit",async e=>{e.preventDefault();try{const data=Object.fromEntries(new FormData(f));if(data.recipient_type!=="course")delete data.course_id;const result=await sendAdminMessage(data);showToast(`Message sent to ${result.sent_count} recipients.`,{kind:"success"});active="sent";await load();}catch(err){showFieldErrors(f,err,msg);}});return f;}
+start();

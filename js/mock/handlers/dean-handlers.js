@@ -13,6 +13,19 @@ import {
   doctorOwnsCourse, studentsInCourses, checkAbsenceWarning,
 } from "../mock-runtime.js";
 import { generateTempPassword } from "./admin-account-handlers.js";
+import { buildDeanAnalytics, buildDeanReports, resolvePeriod } from "../dean-analytics-service.js";
+
+/** GET /dean/analytics */
+export function handleDeanAnalytics(db, _user, searchParams) {
+  if (searchParams.has("period") && !["this_month", "last_30_days", "all_time"].includes(searchParams.get("period"))) return err422({ period: "Must be this_month, last_30_days, or all_time." });
+  return ok(buildDeanAnalytics(db, resolvePeriod(searchParams.get("period"))));
+}
+
+/** GET /dean/reports */
+export function handleDeanReports(db, _user, searchParams) {
+  if (searchParams.has("period") && !["this_month", "last_30_days", "all_time"].includes(searchParams.get("period"))) return err422({ period: "Must be this_month, last_30_days, or all_time." });
+  return ok(buildDeanReports(db, resolvePeriod(searchParams.get("period"))));
+}
 
 export function handleDeanOverview(db, _user) {
   const totalStudents = db.users.filter((u) => u.role === "student" && !u.disabled).length;
@@ -165,27 +178,20 @@ export function handleDeanDepartmentDetail(db, _user, deptId) {
         (r) => courseSessionIds.includes(r.session_id) && r.student_id === student.id && r.status === "absent"
       ).length;
       if (absenceCount >= threshold) {
-        atRiskStudents.push({
-          id: student.id,
-          full_name: student.full_name,
-          course_code: course.code,
-          absence_count: absenceCount,
-        });
+        atRiskStudents.push({ course_code: course.code, absence_count: absenceCount });
       }
     }
   }
 
   const currentMonth = getCurrentMonth();
   const topStudents = deptStudents.map((s) => ({
-    id: s.id,
-    full_name: s.full_name,
     points: db.points_ledger
       .filter((p) => p.student_id === s.id && p.month === currentMonth)
       .reduce((sum, p) => sum + p.points, 0),
   }))
   .sort((a, b) => b.points - a.points)
   .slice(0, 3)
-  .map((s, idx) => ({ id: s.id, full_name: s.full_name, points: s.points, rank: idx + 1 }));
+  .map((s, idx) => ({ points: s.points, rank: idx + 1 }));
 
   return ok({
     dept_name: dept.name,
@@ -219,27 +225,27 @@ export function handleDeanSettings(db, _user) {
 export function handleDeanUpdateSettings(db, user, body) {
   if (!db.settings) db.settings = {};
 
-  const numericFields = [
-    "absence_warning_threshold",
-    "rating_cooldown_days",
-    "points_submission_on_time",
-    "points_quiz_completion",
-    "points_attendance_present",
-  ];
+  const numericFields = {
+    absence_warning_threshold: [1, 20],
+    rating_cooldown_days: [1, 365],
+    points_submission_on_time: [0, 1000],
+    points_quiz_completion: [0, 1000],
+    points_attendance_present: [0, 1000],
+  };
 
   const errors = {};
-  for (const field of numericFields) {
+  for (const [field, [minimum, maximum]] of Object.entries(numericFields)) {
     if (body?.[field] !== undefined) {
       const val = Number(body[field]);
-      if (!Number.isInteger(val) || val <= 0) {
-        errors[field] = "Must be a positive integer.";
+      if (!Number.isInteger(val) || val < minimum || val > maximum) {
+        errors[field] = `Must be an integer from ${minimum} to ${maximum}.`;
       }
     }
   }
 
   if (Object.keys(errors).length > 0) return err422(errors);
 
-  for (const field of numericFields) {
+  for (const field of Object.keys(numericFields)) {
     if (body?.[field] !== undefined) {
       db.settings[field] = Number(body[field]);
     }
@@ -251,4 +257,118 @@ export function handleDeanUpdateSettings(db, user, body) {
   mockDb.save(db);
   return ok(db.settings);
 }
+
+/** GET /dean/messages */
+export function handleDeanMessages(db, user) {
+  const broadcasts = (db.broadcasts || [])
+    .filter((broadcast) => broadcast.sender_id === user.id)
+    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+  return ok(broadcasts);
+}
+
+/** POST /dean/messages */
+export function handleDeanSendMessage(db, user, body) {
+  const audience = body?.audience || "college";
+  const subject = body?.subject?.trim();
+  const messageBody = body?.body?.trim();
+  const type = ["notice", "warning", "suggestion", "system"].includes(body?.type) ? body.type : "notice";
+
+  const errors = {};
+  if (!subject) errors.subject = "Subject is required.";
+  if (!messageBody) errors.body = "Message body is required.";
+  if (audience === "department" && !body?.department_id) {
+    errors.department_id = "Department is required.";
+  }
+  if (audience === "course" && !body?.course_id) {
+    errors.course_id = "Course is required.";
+  }
+  if (Object.keys(errors).length > 0) return err422(errors);
+
+  let recipientIds = [];
+  let departmentId = body?.department_id || null;
+  let courseId = body?.course_id || null;
+
+  if (audience === "college") {
+    // All active users except the dean
+    recipientIds = db.users.filter((u) => u.id !== user.id && !u.disabled).map((u) => u.id);
+  } else if (audience === "all_students") {
+    recipientIds = db.users.filter((u) => u.role === "student" && !u.disabled).map((u) => u.id);
+  } else if (audience === "all_doctors") {
+    recipientIds = db.users.filter((u) => u.role === "doctor" && !u.disabled).map((u) => u.id);
+  } else if (audience === "department") {
+    recipientIds = db.users.filter((u) => u.department_id === departmentId && !u.disabled).map((u) => u.id);
+  } else if (audience === "dept_students") {
+    recipientIds = db.users.filter((u) => u.role === "student" && u.department_id === departmentId && !u.disabled).map((u) => u.id);
+  } else if (audience === "dept_doctors") {
+    recipientIds = db.users.filter((u) => u.role === "doctor" && u.department_id === departmentId && !u.disabled).map((u) => u.id);
+  } else if (audience === "course") {
+    const course = db.courses.find((c) => c.id === courseId);
+    if (!course) return err404("Course");
+    recipientIds = db.enrollments.filter((e) => e.course_id === course.id).map((e) => e.student_id);
+    departmentId = course.department_id;
+  }
+
+  // De-duplicate recipient IDs
+  recipientIds = [...new Set(recipientIds)];
+
+  const nowIso = getNow().toISOString();
+  recipientIds.forEach((rId) => {
+    db.messages.push({
+      id: generateId("msg"),
+      sender_id: user.id,
+      sender_type: "dean",
+      sender_name: user.full_name,
+      recipient_id: rId,
+      course_id: courseId,
+      department_id: departmentId,
+      type,
+      subject,
+      body: messageBody,
+      created_at: nowIso,
+      is_read: false,
+    });
+  });
+
+  if (!db.broadcasts) db.broadcasts = [];
+  const broadcastEntry = {
+    id: generateId("bcast"),
+    sender_id: user.id,
+    scope: "college",
+    audience,
+    department_id: departmentId,
+    course_id: courseId,
+    subject,
+    body: messageBody,
+    recipient_count: recipientIds.length,
+    created_at: nowIso,
+  };
+  db.broadcasts.push(broadcastEntry);
+
+  mockDb.save(db);
+  return ok({ sent_count: recipientIds.length, broadcast_id: broadcastEntry.id }, 201);
+}
+
+/** GET /dean/inbox */
+export function handleDeanInbox(db, user) {
+  const messages = db.messages
+    .filter((m) => m.recipient_id === user.id)
+    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+  return ok(messages);
+}
+
+/** GET /dean/inbox/unread-count */
+export function handleDeanUnreadCount(db, user) {
+  const unread = db.messages.filter((m) => m.recipient_id === user.id && !m.is_read).length;
+  return ok({ unread_count: unread });
+}
+
+/** PUT /dean/inbox/:id/read */
+export function handleDeanMarkRead(db, user, messageId) {
+  const msg = db.messages.find((m) => m.id === messageId && m.recipient_id === user.id);
+  if (!msg) return err404("Message");
+  msg.is_read = true;
+  mockDb.save(db);
+  return ok({ message: "Marked as read." });
+}
+
 

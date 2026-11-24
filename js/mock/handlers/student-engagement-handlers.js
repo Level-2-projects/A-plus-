@@ -14,6 +14,7 @@ import {
 } from "../mock-runtime.js";
 
 export function handleStudentAttendance(db, user) {
+  const threshold = db.settings?.absence_warning_threshold ?? ABSENCE_WARNING_THRESHOLD;
   const enrolledIds = studentCourseIds(db, user.id);
 
   // Build per-course summary
@@ -31,9 +32,9 @@ export function handleStudentAttendance(db, user) {
     const pct       = total > 0 ? Math.round((attended / total) * 1000) / 10 : 100;
 
     let penalty_status = "normal";
-    if (absences >= ABSENCE_WARNING_THRESHOLD + 2) penalty_status = "penalty";
-    else if (absences >= ABSENCE_WARNING_THRESHOLD) penalty_status = "warning";
-    else if (absences >= ABSENCE_WARNING_THRESHOLD - 1) penalty_status = "notice";
+    if (absences >= threshold + 2) penalty_status = "penalty";
+    else if (absences >= threshold) penalty_status = "warning";
+    else if (absences >= threshold - 1) penalty_status = "notice";
 
     return {
       course_id:      cid,
@@ -78,7 +79,7 @@ export function handleStudentAttendance(db, user) {
     attended_lectures:   totalAttended,
     absence_count:       totalAbsences,
     grade_penalty_risk:  courses.some((c) => c.penalty_status === "warning" || c.penalty_status === "penalty"),
-    warning_threshold:   ABSENCE_WARNING_THRESHOLD,
+    warning_threshold:   threshold,
     courses,
     history,
   });
@@ -332,7 +333,8 @@ export function handleStudentRating(db, user, body) {
   if (!enrolledIds.includes(resolvedCourseId)) return err403();
 
   // Cooldown check
-  const cooldownMs = RATING_COOLDOWN_DAYS * 24 * 60 * 60 * 1000;
+  const cooldownDays = db.settings?.rating_cooldown_days ?? RATING_COOLDOWN_DAYS;
+  const cooldownMs = cooldownDays * 24 * 60 * 60 * 1000;
   const recent = db.ratings.find(
     (r) =>
       r.student_id  === user.id &&
@@ -341,7 +343,7 @@ export function handleStudentRating(db, user, body) {
       getNow() - new Date(r.created_at) < cooldownMs
   );
   if (recent) {
-    return fail(429, `You can rate this ${target_type} again in ${RATING_COOLDOWN_DAYS} days.`);
+    return fail(429, `You can rate this ${target_type} again in ${cooldownDays} days.`);
   }
 
   const rating = {

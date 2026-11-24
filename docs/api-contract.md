@@ -660,7 +660,46 @@ Aggregated student ratings and feedback without student identities.
 - `POST /doctor/quizzes` creates a quiz in an owned course; `PATCH /doctor/quizzes/{quiz_id}` updates it.
 - Every write is scoped to the authenticated doctor's own courses. Students enrolled in those courses can see the course content; other students cannot.
 
-### 3.10 Department Admin Broadcasts and Settings
+### 3.10 Doctor Inbox
+Mirroring the student inbox contract, doctors receive department broadcasts and notifications. Messages are returned newest first. A doctor can only read and mark their own messages (403 or 404 for others). The doctor's sent messages never appear in the inbox.
+
+#### List Received Messages
+- **Method / Path:** `GET /doctor/inbox`
+- **Response `200 OK`:**
+```json
+[
+  {
+    "id": "msg-201",
+    "type": "notice",
+    "sender_name": "Rania Hatem",
+    "sender_type": "admin",
+    "subject": "Faculty Council Meeting",
+    "body": "Reminder: department council convenes this Thursday at 10 AM in Hall A.",
+    "created_at": "2026-10-25T08:30:00Z",
+    "is_read": false
+  }
+]
+```
+
+#### Mark Doctor Message as Read
+- **Method / Path:** `PUT /doctor/inbox/{message_id}/read`
+- **Response `200 OK`:**
+```json
+{
+  "message": "Marked as read."
+}
+```
+
+#### Doctor Unread Notification Count
+- **Method / Path:** `GET /doctor/inbox/unread-count`
+- **Response `200 OK`:**
+```json
+{
+  "unread_count": 1
+}
+```
+
+### 3.11 Department Admin Broadcasts and Settings
 - **Method / Path:** `POST /admin/messages`
 - **Request Body:** `recipient_type` may be `students`, `doctors`, `both`, `course`, or `dean`. A `course` broadcast requires `course_id`; the course must belong to the authenticated administrator's department or the route returns `403`.
 - **Response `201 Created`:** `{ "sent_count": number }`. Each recipient receives exactly one unread message with the administrator's sender name and role.
@@ -669,11 +708,45 @@ Aggregated student ratings and feedback without student identities.
 - **Method / Path:** `GET /admin/settings`
 - **Response `200 OK`:** Current institutional settings. Department administrators have read-only access; a department-admin token on `PATCH /dean/settings` returns `403`.
 
+### 3.11 Department Admin Student Level
+- `GET /admin/students` returns each student with `level` (`"1"` through `"5"`, or `null` for legacy records).
+- `POST /admin/students` requires `level`; `PATCH /admin/students/{student_id}` accepts it. Values outside `1` through `5` return `422` with a field error.
+
+### 3.12 Dean Analytics, Reports, and Active Settings
+- **Method / Path:** `GET /dean/analytics?period=this_month|last_30_days|all_time`
+- **Response `200 OK`:** College and per-department/per-course attendance rate, submission rate, average grade, average doctor rating plus count, at-risk count, average points, anonymous current/previous-month top-three rankings, and a needs-attention course list. Invalid `period` returns `422`.
+- **Method / Path:** `GET /dean/reports?period=this_month|last_30_days|all_time`
+- **Response `200 OK`:** CSV-ready arrays named `attendance`, `submissions_and_grades`, `doctor_ratings`, and `at_risk_students`. Rating comments remain anonymous; no dean response exposes a student identity or an `ai_score` field.
+- **Method / Path:** `PATCH /dean/settings`
+- Only `super_admin` may write settings. Ranges are absence threshold `1–20`, rating cooldown `1–365` days, and each points value `0–1000`; invalid writes return `422`. Saved values take effect immediately for new absence warnings, rating cooldown checks, and newly-awarded attendance, submission, and quiz points.
+
+### 3.13 Dean Announcements & Inbox
+- **Method / Path:** `GET /dean/messages`
+- **Response `200 OK`:** List of broadcast announcements sent by the Dean, each with `recipient_count`, `audience`, `subject`, `body`, and `created_at`.
+- **Method / Path:** `POST /dean/messages`
+- **Request Body:**
+```json
+{
+  "audience": "college",
+  "subject": "Campus Convocation",
+  "body": "Annual convocation announcement details.",
+  "type": "notice"
+}
+```
+- Supported audiences: `college`, `all_students`, `all_doctors`, `department`, `dept_students`, `dept_doctors`, `course`. Creates one unread message per recipient with sender name and role (`dean`).
+- **Response `201 Created`:** `{ "sent_count": number, "broadcast_id": string }`.
+- **Method / Path:** `GET /dean/inbox`
+- **Response `200 OK`:** Messages received by the Dean (e.g. from department admins), newest first.
+- **Method / Path:** `GET /dean/inbox/unread-count`
+- **Response `200 OK`:** `{ "unread_count": number }`.
+- **Method / Path:** `PUT /dean/inbox/{message_id}/read`
+- **Response `200 OK`:** `{ "message": "Marked as read." }`.
+
 ---
 
 ## 4. Complete Mock Route Inventory
 
-The mock server currently handles 76 routes, including the public `POST /auth/login` route. All other routes require authentication; student and doctor routes are role-restricted. `{...}` denotes a path parameter.
+The mock server currently handles 86 routes, including the public `POST /auth/login` route. All other routes require authentication; student and doctor routes are role-restricted. `{...}` denotes a path parameter.
 
 | Role | Method | Path |
 |---|---|---|
@@ -719,6 +792,9 @@ The mock server currently handles 76 routes, including the public `POST /auth/lo
 | Doctor | POST | `/doctor/students/{student_id}/bonus` |
 | Doctor | GET | `/doctor/messages` |
 | Doctor | POST | `/doctor/messages` |
+| Doctor | GET | `/doctor/inbox` |
+| Doctor | GET | `/doctor/inbox/unread-count` |
+| Doctor | PUT | `/doctor/inbox/{message_id}/read` |
 | Doctor | GET | `/doctor/ratings` |
 | Doctor | GET | `/doctor/profile` |
 | Dept Admin | GET | `/admin/dashboard/summary` |
@@ -749,8 +825,15 @@ The mock server currently handles 76 routes, including the public `POST /auth/lo
 | Dean | GET | `/dean/departments` |
 | Dean | POST | `/dean/departments` |
 | Dean | GET | `/dean/departments/{department_id}` |
+| Dean | GET | `/dean/analytics?period=...` |
+| Dean | GET | `/dean/reports?period=...` |
 | Dean | GET | `/dean/settings` |
 | Dean | PATCH | `/dean/settings` |
+| Dean | GET | `/dean/messages` |
+| Dean | POST | `/dean/messages` |
+| Dean | GET | `/dean/inbox` |
+| Dean | GET | `/dean/inbox/unread-count` |
+| Dean | PUT | `/dean/inbox/{message_id}/read` |
 | Dean | GET | `/dean/profile` |
 
 ### Integration Points

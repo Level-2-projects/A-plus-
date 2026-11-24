@@ -58,6 +58,7 @@ export const SEED_USERS = [
     department_id: "dept-1",
     department_name: "Computer Science",
     university_id: "CS2023001",
+    level: "3",
     disabled: false,
   },
   {
@@ -69,6 +70,7 @@ export const SEED_USERS = [
     department_id: "dept-1",
     department_name: "Computer Science",
     university_id: "CS2023002",
+    level: "3",
     disabled: false,
   },
   {
@@ -80,6 +82,7 @@ export const SEED_USERS = [
     department_id: "dept-1",
     department_name: "Computer Science",
     university_id: "CS2023003",
+    level: "3",
     disabled: false,
   },
   {
@@ -91,6 +94,7 @@ export const SEED_USERS = [
     department_id: "dept-1",
     department_name: "Computer Science",
     university_id: "CS2023004",
+    level: "3",
     disabled: false,
   },
   {
@@ -102,6 +106,7 @@ export const SEED_USERS = [
     department_id: "dept-1",
     department_name: "Computer Science",
     university_id: "CS2023005",
+    level: "3",
     disabled: false,
   },
 
@@ -137,6 +142,7 @@ export const SEED_USERS = [
     department_id: "dept-1",
     department_name: "Computer Science",
     university_id: "CS2023999",
+    level: "3",
     disabled: true,
   },
 
@@ -175,6 +181,7 @@ export const SEED_USERS = [
     department_id: "dept-2",
     department_name: "Information Systems",
     university_id: "IS2023001",
+    level: "2",
     disabled: false,
   },
   // student7@aplus.edu / Student7! – Fady Samy – student – dept-2
@@ -187,6 +194,7 @@ export const SEED_USERS = [
     department_id: "dept-2",
     department_name: "Information Systems",
     university_id: "IS2023002",
+    level: "2",
     disabled: false,
   },
 ];

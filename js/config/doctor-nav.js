@@ -92,7 +92,8 @@ export const DOCTOR_NAV_ITEMS = [
       <line x1="8" y1="9" x2="16" y2="9"></line>
       <line x1="8" y1="13" x2="14" y2="13"></line>
     </svg>`,
-    hasBadge: false,
+    hasBadge: true,
+    badgeId: "nav-doctor-messages-badge",
   },
   {
     id: "ratings",

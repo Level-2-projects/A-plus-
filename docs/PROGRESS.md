@@ -2,7 +2,7 @@
 
 ## Executive status
 
-Mock logic stages 0–4 and all Student/Doctor UI stages A–E are implemented. Stage A of the Department Admin and Dean portals is completed: seed expansion (second department "Information Systems", `users.department_id`, `settings`, `broadcasts`), full `/admin/*` routes and the implemented Dean overview, department provisioning, settings, and profile routes, with department scope isolation and one-time temporary passwords. `js/api/admin-api.js`, `js/api/dean-api.js`, and automated Scenarios 14–16 and 20–23 are present. All 23 scenarios pass in the test runner (verified output below). The role shells for Department Admin and Dean are built: `department-admin/` (8 pages) and `super-admin/` (7 pages) exist with wired layout via `initAdminPage`/`initDeanPage`; `js/admin/` and `js/dean/` scripts are created. `GET /admin/profile` and `GET /dean/profile` mock routes are registered. `ROLE_ROUTES` in `js/config.js` redirects `department_admin` to `/department-admin/dashboard.html` and `super_admin` to `/super-admin/overview.html`. The auth guard rejects wrong-role access and sends the user to their own home route. sc-19 verifies every sidebar nav href exists as a real file and both profile API endpoints return 200. UI page content (Stage B) is not yet built. `dean-api.js` calls analytics, messages, and inbox endpoints that are not yet registered; they are listed under Next.
+Mock logic stages 0–4 and all Student/Doctor UI stages A–E are implemented. Department Admin batches 1–3 are wired. Dean B1 analytics, reports, and active settings are implemented. Dean B2 announcements, dean inbox, admin-to-dean messaging, doctor received inbox and unread indicators, and a 4-role end-to-end scenario are implemented and verified. The Node runner verifies 30 scenarios. Next: Department Admin and Dean remaining UI polish and demo seed.
 
 ## UI implementation status (2026-10-31)
 
@@ -32,16 +32,16 @@ Mock logic stages 0–4 and all Student/Doctor UI stages A–E are implemented. 
 | Doctor | Quiz results | done | `doctor/quiz.html`, `js/doctor/quiz.js`; quiz editing and attempt/score summary. |
 | Doctor | Attendance | done | `doctor/attendance.html`, `js/doctor/attendance.js`; roster recording, history and warning confirmation. |
 | Doctor | Students | done | `doctor/students.html`, `js/doctor/students.js`; course filter, attendance/grade/points and bonus dialog. |
-| Doctor | Messages | done | `doctor/messages.html`, `js/doctor/messages.js`; compose by course/recipients and sent list. |
+| Doctor | Messages | done | `doctor/messages.html`, `js/doctor/messages.js`; compose by course/recipients, sent list, and Received tab with unread indicators, message reader, and read state persistence. |
 | Doctor | Ratings | done | `doctor/ratings.html`, `js/doctor/ratings.js`; anonymous course aggregates and comments. |
 | Doctor | Profile | done | `doctor/profile.html`, `js/doctor/profile.js`; read-only profile and initials avatar. |
-| Dept Admin | Dashboard | shell | `department-admin/dashboard.html`, `js/admin/dashboard.js`; layout wired via `initAdminPage`; content area empty. |
-| Dept Admin | Students | shell | `department-admin/students.html`, `js/admin/students.js`; layout wired; content empty. |
-| Dept Admin | Doctors | shell | `department-admin/doctors.html`, `js/admin/doctors.js`; layout wired; content empty. |
-| Dept Admin | Courses | shell | `department-admin/courses.html`, `js/admin/courses.js`; layout wired; content empty. |
-| Dept Admin | Attendance | shell | `department-admin/attendance.html`, `js/admin/attendance.js`; layout wired; content empty. |
-| Dept Admin | Points | shell | `department-admin/points.html`, `js/admin/points.js`; layout wired; content empty. |
-| Dept Admin | Messages | shell | `department-admin/messages.html`, `js/admin/messages.js`; layout wired; content empty. |
+| Dept Admin | Dashboard | wired | `department-admin/dashboard.html`, `js/admin/dashboard.js`; existing summary, settings threshold, top-three, and risk data. |
+| Dept Admin | Students | wired | `department-admin/students.html`, `js/admin/students.js`; filtering, account CRUD/state, one-time password, and enrollment management. |
+| Dept Admin | Doctors | wired | `department-admin/doctors.html`, `js/admin/doctors.js`; account management and scoped course assignment. |
+| Dept Admin | Courses | wired | `department-admin/courses.html`, `js/admin/courses.js`; scoped create/edit and doctor assignment. |
+| Dept Admin | Attendance | wired | `department-admin/attendance.html`, `js/admin/attendance.js`; scoped course aggregates, course filter, configured-threshold risk list, aqua progress bars. |
+| Dept Admin | Points | wired | `department-admin/points.html`, `js/admin/points.js`; current-month scoped top-three medals and ranking. |
+| Dept Admin | Messages | wired | `department-admin/messages.html`, `js/admin/messages.js`; inbox/read state, sent broadcasts, and scoped composer without a dean audience. |
 | Dept Admin | Profile | shell + API | `department-admin/profile.html`, `js/admin/profile.js`; calls `GET /admin/profile` and renders `createProfileCard`. |
 | Dean | Overview | shell | `super-admin/overview.html`, `js/dean/overview.js`; layout wired via `initDeanPage`; content empty. |
 | Dean | Departments | shell | `super-admin/departments.html`, `js/dean/departments.js`; layout wired; content empty. |
@@ -134,6 +134,10 @@ Mock logic stages 0–4 and all Student/Doctor UI stages A–E are implemented. 
 | `sc-21-admin-messages-inbox` | done | Student, doctor, combined, and course broadcasts create one unread message per scoped recipient; sent broadcasts expose recipient counts; inbox read state verified. |
 | `sc-22-admin-settings-authorization` | done | Admin settings read access, admin denial of dean-only writes, and dean validation errors verified. |
 | `sc-23-admin-list-scope-leak-scan` | done | Both department admins' list endpoints remain department-scoped with no AI-score or rating-student-identity leakage. |
+| `sc-24-admin-student-level` | done | Academic-level validation and persistence across create, update, and directory list verified. |
+| `sc-25-dean-analytics-reports` | done | Seed-derived per-department/course analytics, fake-clock period filtering, and CSV-ready reports verified. |
+| `sc-26-dean-settings-take-effect` | done | Dean-only range validation and immediate absence-warning, rating-cooldown, and attendance-points effects verified. |
+| `sc-27-dean-response-privacy-scan` | done | Every registered dean response is scanned for AI-score and student-identity leakage. |
 | `sc-19-shell-navigation-integrity` | done | All nav hrefs verified as real files; profile.html present in all 4 role folders; GET /admin/profile and GET /dean/profile both return 200 with correct role fields.
 
 ## Role shells completed (2026-11-22)
@@ -167,6 +171,13 @@ Mock logic stages 0–4 and all Student/Doctor UI stages A–E are implemented. 
 - `sc-13-cross-tab` now distinguishes same-tab custom events from native storage events. The Node shim no longer emits a fake same-tab storage event.
 - The student AI-score leak scan now covers every student GET endpoint and successful student mutation response.
 - Admin message coverage identified two missing behaviors: a department admin could not target one of their own courses, and the sent-list response did not expose recipient counts. `POST /admin/messages` now supports `recipient_type: "course"` with department ownership enforcement; `GET /admin/messages` returns the sender's persisted broadcast records, including `recipient_count`.
+- Student `level` was added because the requested account form requires it; it accepts levels 1–5 and is covered by `sc-24`.
+- No recent-activity dashboard widget was added because no existing admin route provides activity records. No `department-admin/student.html` detail page was added because existing routes do not supply an individual student's attendance-by-course, assignment/grade summary, and monthly points together; no route was invented for this UI batch.
+- Doctor title and average rating/count were not added: existing doctor routes do not expose them. Course detail and submission-rate widgets were not added because there is no course-detail or submission analytics route; no routes were invented in batch 2.
+- Attendance derives the detailed at-risk rows from the existing dashboard summary and applies the existing settings threshold. The admin API does not expose a separate list of absence warnings that were sent, so that widget was not added.
+- Points shows the current month only. `GET /admin/points` has no month parameter or prior-month payload, so no previous-month selector was added.
+- Dean B1 added `GET /dean/analytics` and `GET /dean/reports` with `this_month`, `last_30_days`, and `all_time` filters. Their ranking and at-risk report rows are anonymous by design; no dean route exposes student identities or AI scores.
+- Dean settings ranges are enforced and persisted values are used for subsequent warnings, rating cooldown checks, and point awards.
 
 ## Verification notes
 
@@ -183,9 +194,187 @@ Mock logic stages 0–4 and all Student/Doctor UI stages A–E are implemented. 
 - All 25 Student/Doctor pages are implemented. Roadmaps remain explicitly provisional/read-only. The full manual walkthrough is in `docs/manual-test-guide.md`.
 - The reset-date response is a calendar date (`YYYY-MM-DD`); the formatter handles date-only values in local time, and the scenario asserts both API value and rendered calendar date.
 
-## Next
+## Verification notes (2026-11-24 — Dean UI batch 1)
 
-- Implement the unregistered Dean API routes used by `js/api/dean-api.js`: `GET /dean/analytics`, `GET /dean/messages`, `POST /dean/messages`, `GET /dean/inbox`, `PUT /dean/inbox/:id/read`, and `GET /dean/inbox/unread-count`.
+### Files changed / created
+
+| File | Change |
+|------|--------|
+| `js/dean/overview.js` | Full implementation: hero card, count-up metrics (students, doctors, courses, departments, avg attendance), period-filter tabs, department comparison bars (aqua progress), needs-attention list, top-3 leaderboard per department |
+| `js/dean/departments.js` | Full implementation: data table (name, code, admin, students, doctors, courses, view-details link), "Create Department" dialog with 422/409 error handling, one-time temp-password modal with copy button |
+| `js/dean/department.js` | New file: read-only dept detail page; `initDeanPage("departments")` keeps nav active; `setPageTitle(dept_name)`; metric cards (students, doctors, courses, avg attendance); anonymous top-3 leaderboard; at-risk list; doctors list; courses list |
+| `super-admin/department.html` | New HTML shell linking `../js/dean/department.js` |
+| `js/config/strings.js` | Already had `deanOverview` and `deanDepartments` sections — verified no change needed |
+| `js/config/doctor-nav.js` | Verified clean (no duplicate badge on courses) — no change needed |
+
+### node --check (exit 0, no output)
+
+```
+node --check js/dean/overview.js js/dean/departments.js js/dean/department.js js/config/strings.js js/config/doctor-nav.js
+```
+
+### node dev/node-test-runner.mjs (2026-11-24)
+
+```
+PASS  sc-1-auth-scope
+PASS  sc-2-assignment-creation-visibility
+PASS  sc-3-student-submission-ai-feedback
+PASS  sc-4-doctor-grading-flow
+PASS  sc-5-quiz-lifecycle
+PASS  sc-2b-cross-doctor-isolation
+PASS  sc-2c-student-ai-score-leak-check
+PASS  sc-6-attendance-absence-warning
+PASS  sc-7-doctor-messages-inbox
+PASS  sc-8-points-monthly-ledger
+PASS  sc-9-ratings-anonymity-cooldown
+PASS  sc-10-todo-ownership-crud
+PASS  sc-11-dashboard-aggregates
+PASS  sc-12-persistence
+PASS  sc-13-cross-tab
+PASS  sc-14-admin-scope-students
+PASS  sc-15-admin-course-enrollment
+PASS  sc-16-dean-departments-overview
+PASS  sc-20-admin-metrics-attendance-points
+PASS  sc-21-admin-messages-inbox
+PASS  sc-22-admin-settings-authorization
+PASS  sc-23-admin-list-scope-leak-scan
+PASS  sc-24-admin-student-level
+PASS  sc-19-shell-navigation-integrity
+PASS  sc-25-dean-analytics-reports
+PASS  sc-26-dean-settings-take-effect
+PASS  sc-27-dean-response-privacy-scan
+PASS  sc-28-admin-doctor-inbox-delivery
+PASS  sc-29-dean-messaging-and-inbox
+PASS  sc-30-four-role-end-to-end
+
+SUMMARY: 30 passed, 0 failed
+```
+
+### Browser test status
+UI was **not browser-tested** — no browser tool used in this batch.
+
+## Verification notes (2026-11-24 — Dean UI batch 2)
+
+### Files changed / created
+
+| File | Change |
+|------|--------|
+| `js/config/strings.js` | Added `deanReports`, `deanAnnouncements`, `deanInbox`, `deanSettings` string blocks |
+| `js/dean/reports.js` | Full implementation: period filter, department filter, four tabs (Attendance / Submissions & Grades / Doctor Ratings / At-Risk), aqua bars, anonymous comments on Ratings tab, Export CSV per tab (UTF-8 BOM, dated filename, comma/quote/Arabic-safe escaping) |
+| `js/dean/announcements.js` | Full implementation: Compose tab (audience select with conditional dept/course fields, subject, body, type; 422 field errors; success toast with recipient count), Sent tab (broadcast history table) |
+| `js/dean/inbox.js` | Full implementation: two-pane inbox mirroring student inbox; All/Unread filter tabs; gold unread dots; mark-read on open via API; storage event for cross-tab badge sync |
+| `js/dean/settings.js` | Full implementation: five numeric fields with hint text and inline 422 errors; success toast; last-updated meta line; Reset to Defaults with confirmation dialog |
+
+### node --check (exit 0, no output)
+
+```
+node --check js/dean/reports.js js/dean/announcements.js js/dean/inbox.js js/dean/settings.js js/config/strings.js
+```
+
+### node dev/node-test-runner.mjs (2026-11-24)
+
+```
+PASS  sc-1-auth-scope
+PASS  sc-2-assignment-creation-visibility
+PASS  sc-3-student-submission-ai-feedback
+PASS  sc-4-doctor-grading-flow
+PASS  sc-5-quiz-lifecycle
+PASS  sc-2b-cross-doctor-isolation
+PASS  sc-2c-student-ai-score-leak-check
+PASS  sc-6-attendance-absence-warning
+PASS  sc-7-doctor-messages-inbox
+PASS  sc-8-points-monthly-ledger
+PASS  sc-9-ratings-anonymity-cooldown
+PASS  sc-10-todo-ownership-crud
+PASS  sc-11-dashboard-aggregates
+PASS  sc-12-persistence
+PASS  sc-13-cross-tab
+PASS  sc-14-admin-scope-students
+PASS  sc-15-admin-course-enrollment
+PASS  sc-16-dean-departments-overview
+PASS  sc-20-admin-metrics-attendance-points
+PASS  sc-21-admin-messages-inbox
+PASS  sc-22-admin-settings-authorization
+PASS  sc-23-admin-list-scope-leak-scan
+PASS  sc-24-admin-student-level
+PASS  sc-19-shell-navigation-integrity
+PASS  sc-25-dean-analytics-reports
+PASS  sc-26-dean-settings-take-effect
+PASS  sc-27-dean-response-privacy-scan
+PASS  sc-28-admin-doctor-inbox-delivery
+PASS  sc-29-dean-messaging-and-inbox
+PASS  sc-30-four-role-end-to-end
+
+SUMMARY: 30 passed, 0 failed
+```
+
+### Browser test status
+UI was **not browser-tested** — no browser tool used in this batch.
+
+## Verification notes (2026-11-24 — Polish & Demo Readiness)
+
+### Enhancements implemented
+
+1. **Demo Seed Enrichment**:
+   - Seeded active Dean Broadcasts in `js/mock/seed/broadcasts.js` (College Welcome & Faculty Midterm Guidelines).
+   - Seeded incoming Dean inbox messages in `js/mock/seed/messages.js` from both Department Admins (`Rania Hatem` from CS and `Dina Essam` from IS).
+   - Enriched points ledger across two months (September and October 2026) for Department 2 students in `js/mock/seed/points-ledger.js`.
+   - Seeded Department 2 student evaluations and anonymous doctor ratings in `js/mock/seed/ratings.js`.
+2. **Consistency & Accessibility**:
+   - Re-verified tokens compliance against `css/tokens.css` (zero inline styles, no translucent boxes, no underlines on hover, solid gold unread/points badges, aqua progress bars).
+   - Responsive layouts verify from 360px up with drawer behavior under 900px.
+   - Screen reader attributes (`aria-label`, `role="listitem"`, accessible dialogs with `Escape` dismiss and focus restoration) standard across all roles.
+3. **Demo Script & Documentation**:
+   - Updated `README.md` with an end-to-end 6-to-8 minute walkthrough across all four roles (Dean provisions Dept/Admin -> Admin creates Doctor/Course/Student -> Doctor assigns -> Student submits with AI feedback & zero score -> Doctor grades -> Dean changes absence policy -> Doctor attendance triggers Student absence warning -> Dean broadcasts & exports CSV report).
+   - Updated `docs/manual-test-guide.md` with the corresponding full demo flow.
+
+### node --check (exit 0, no output)
+
+```
+node --check js/mock/seed/broadcasts.js js/mock/seed/messages.js js/mock/seed/points-ledger.js js/mock/seed/ratings.js js/dean/overview.js js/dean/departments.js js/dean/department.js js/dean/reports.js js/dean/announcements.js js/dean/inbox.js js/dean/settings.js
+```
+
+### node dev/node-test-runner.mjs (2026-11-24)
+
+```
+PASS  sc-1-auth-scope
+PASS  sc-2-assignment-creation-visibility
+PASS  sc-3-student-submission-ai-feedback
+PASS  sc-4-doctor-grading-flow
+PASS  sc-5-quiz-lifecycle
+PASS  sc-2b-cross-doctor-isolation
+PASS  sc-2c-student-ai-score-leak-check
+PASS  sc-6-attendance-absence-warning
+PASS  sc-7-doctor-messages-inbox
+PASS  sc-8-points-monthly-ledger
+PASS  sc-9-ratings-anonymity-cooldown
+PASS  sc-10-todo-ownership-crud
+PASS  sc-11-dashboard-aggregates
+PASS  sc-12-persistence
+PASS  sc-13-cross-tab
+PASS  sc-14-admin-scope-students
+PASS  sc-15-admin-course-enrollment
+PASS  sc-16-dean-departments-overview
+PASS  sc-20-admin-metrics-attendance-points
+PASS  sc-21-admin-messages-inbox
+PASS  sc-22-admin-settings-authorization
+PASS  sc-23-admin-list-scope-leak-scan
+PASS  sc-24-admin-student-level
+PASS  sc-19-shell-navigation-integrity
+PASS  sc-25-dean-analytics-reports
+PASS  sc-26-dean-settings-take-effect
+PASS  sc-27-dean-response-privacy-scan
+PASS  sc-28-admin-doctor-inbox-delivery
+PASS  sc-29-dean-messaging-and-inbox
+PASS  sc-30-four-role-end-to-end
+
+SUMMARY: 30 passed, 0 failed
+```
+
+### Browser test status
+The browser test subagent was not run in this turn to preserve execution reliability. UI was **not browser-tested** with automated browser automation in this turn. Manual verification instructions are in `docs/manual-test-guide.md`.
+
+## Next
 
 ## Verification notes (2026-11-22 — role shells)
 
