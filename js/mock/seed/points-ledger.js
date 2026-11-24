@@ -243,4 +243,48 @@ export const SEED_POINTS_LEDGER = [
     description: "Bonus: Best project demo in September",
     created_at: "2026-09-25T12:00:00Z",
   },
+
+  /* Dept 2 (Information Systems) students — September 2026 */
+  {
+    id: "pts-sep-3",
+    student_id: "usr-13",
+    month: "2026-09",
+    source: "bonus",
+    points: 75,
+    reference_id: null,
+    description: "Bonus: Database Schema Design Excellence",
+    created_at: "2026-09-22T10:00:00Z",
+  },
+  {
+    id: "pts-sep-4",
+    student_id: "usr-14",
+    month: "2026-09",
+    source: "bonus",
+    points: 60,
+    reference_id: null,
+    description: "Bonus: Requirements Analysis Case Study",
+    created_at: "2026-09-23T14:00:00Z",
+  },
+
+  /* Dept 2 (Information Systems) students — October 2026 */
+  {
+    id: "pts-is-1",
+    student_id: "usr-13",
+    month: "2026-10",
+    source: "bonus",
+    points: 90,
+    reference_id: null,
+    description: "Bonus: Top performance in SQL Optimization",
+    created_at: "2026-10-18T11:00:00Z",
+  },
+  {
+    id: "pts-is-2",
+    student_id: "usr-14",
+    month: "2026-10",
+    source: "bonus",
+    points: 70,
+    reference_id: null,
+    description: "Bonus: Diligent participation in lab work",
+    created_at: "2026-10-20T11:30:00Z",
+  },
 ];

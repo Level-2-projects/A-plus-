@@ -29,6 +29,9 @@ export function getRoutes() {
     ["POST", /^\/doctor\/students\/([^/]+)\/bonus$/, (db,u,p,b) => engagement.handleDoctorGrantBonus(db,u,p[1],b), ["doctor"]],
     ["GET", /^\/doctor\/messages$/, (db,u) => engagement.handleDoctorMessages(db,u), ["doctor"]],
     ["POST", /^\/doctor\/messages$/, (db,u,_p,b) => engagement.handleDoctorSendMessage(db,u,b), ["doctor"]],
+    ["GET", /^\/doctor\/inbox$/, (db,u) => engagement.handleDoctorInbox(db,u), ["doctor"]],
+    ["GET", /^\/doctor\/inbox\/unread-count$/, (db,u) => engagement.handleDoctorUnreadCount(db,u), ["doctor"]],
+    ["PUT", /^\/doctor\/inbox\/([^/]+)\/read$/, (db,u,p) => engagement.handleDoctorMarkRead(db,u,p[1]), ["doctor"]],
     ["GET", /^\/doctor\/ratings$/, (db,u) => engagement.handleDoctorRatings(db,u), ["doctor"]],
     ["GET", /^\/doctor\/profile$/, (db,u) => engagement.handleDoctorProfile(db,u), ["doctor"]],
   ];

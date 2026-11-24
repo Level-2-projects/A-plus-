@@ -133,4 +133,32 @@ export const SEED_MESSAGES = [
     created_at: "2026-10-29T09:00:00Z",
     is_read: false,
   },
+
+  /* ── Messages for Dean (usr-9) ── */
+  {
+    id: "msg-dean-1",
+    sender_id: "usr-8",
+    sender_type: "admin",
+    sender_name: "Rania Hatem",
+    recipient_id: "usr-9",
+    course_id: null,
+    type: "notice",
+    subject: "CS Department Monthly Performance Summary",
+    body: "Please find the summary of student attendance and course progression across all active Computer Science courses for your review.",
+    created_at: "2026-10-28T09:30:00Z",
+    is_read: true,
+  },
+  {
+    id: "msg-dean-2",
+    sender_id: "usr-11",
+    sender_type: "admin",
+    sender_name: "Dina Essam",
+    recipient_id: "usr-9",
+    course_id: null,
+    type: "suggestion",
+    subject: "Information Systems Lab Resource Allocation",
+    body: "We request approval for expanding server computing capacity in IS-Lab 1 to support the advanced database indexing practicals.",
+    created_at: "2026-10-29T11:15:00Z",
+    is_read: false,
+  },
 ];

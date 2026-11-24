@@ -1,10 +1,31 @@
-/**
- * js/admin/doctors.js – Department Admin Faculty Doctors shell view.
- * Initializes the layout shell; content area stays empty until Stage B.
- *
- * Depends on: js/core/layout.js
- */
+/** Department doctor directory backed by existing admin APIs. */
+import { createAdminDoctor, deactivateAdminDoctor, getAdminCourses, getAdminDoctors, reactivateAdminDoctor, updateAdminDoctor, updateAdminCourse } from "../api/admin-api.js";
+import { createDataTable } from "../components/data-table.js";
+import { confirmDialog } from "../components/dialog.js";
+import { createErrorState } from "../components/error-state.js";
+import { createFormField, showFieldErrors } from "../components/form-field.js";
+import { createSkeleton } from "../components/skeleton.js";
+import { createStatusDot } from "../components/status-dot.js";
+import { showToast } from "../components/toast.js";
+import { initAdminPage, setPageTitle } from "../core/layout.js";
 
-import { initAdminPage } from "../core/layout.js";
-
-initAdminPage("doctors");
+const root = document.getElementById("page-content"); let doctors=[]; let courses=[];
+/** Mounts the protected doctor directory. */
+async function start(){initAdminPage("doctors");if(!root||!document.querySelector(".app-shell"))return;setPageTitle("Faculty Doctors");root.append(createSkeleton({lines:7}));await load();}
+/** Loads doctors and department courses. */
+async function load(){try{[doctors,courses]=await Promise.all([getAdminDoctors(),getAdminCourses()]);render();}catch(e){root.replaceChildren(createErrorState(e.message||"Doctors could not be loaded.",load));}}
+/** Renders the table and creation action. */
+function render(){root.replaceChildren();const page=document.createElement("section");page.className="page-stack";const head=document.createElement("div");head.className="course-work-row";const title=document.createElement("h2");title.textContent="Faculty Doctors";head.append(title,button("Add doctor","btn btn-primary",()=>openForm()));page.append(head,createDataTable({label:"Faculty doctors",emptyMessage:"No doctors in this department.",rows:doctors,columns:[{key:"full_name",label:"Name"},{key:"email",label:"Email"},{key:"courses",label:"Courses",render:r=>r.courses.map(c=>c.code).join(", ")||"—"},{key:"status",label:"Status",render:r=>createStatusDot(r.disabled?"Deactivated":"Active",r.disabled?"warning":"success")},{key:"actions",label:"Actions",render:actions}]}));root.append(page);}
+/** Creates reusable action buttons. */
+function button(label,className,fn){const b=document.createElement("button");b.type="button";b.className=className;b.textContent=label;b.addEventListener("click",fn);return b;}
+/** Creates row actions for existing doctor operations. */
+function actions(doctor){const box=document.createElement("div");box.className="todo-actions";box.append(button("Edit","btn btn-secondary",()=>openForm(doctor)),button(doctor.disabled?"Reactivate":"Deactivate","btn btn-secondary",()=>toggle(doctor)),button("Assign courses","btn btn-secondary",()=>assign(doctor)));return box;}
+/** Opens create/edit form with shared field-error mapping. */
+function openForm(doctor){const d=document.createElement("dialog");d.className="confirm-dialog";const f=document.createElement("form");f.className="confirm-dialog__form";const h=document.createElement("h2");h.textContent=doctor?"Edit doctor":"Add doctor";const fields=[createFormField({label:"Full name",name:"full_name",required:true}),createFormField({label:"Email",name:"email",type:"email",required:true}),createFormField({label:"University ID",name:"university_id",required:true})];fields.forEach(x=>{const i=x.querySelector("input");if(doctor)i.value=doctor[i.name]||"";});const msg=document.createElement("p");msg.className="form-message";msg.hidden=true;const save=document.createElement("button");save.className="btn btn-primary";save.textContent="Save";const cancel=button("Cancel","btn btn-secondary",()=>d.close());const a=document.createElement("div");a.className="dialog-actions";a.append(cancel,save);f.append(h,...fields,msg,a);d.append(f);document.body.append(d);d.showModal();d.addEventListener("close",()=>d.remove(),{once:true});f.addEventListener("submit",async e=>{e.preventDefault();try{const data=Object.fromEntries(new FormData(f));const result=doctor?await updateAdminDoctor(doctor.id,data):await createAdminDoctor(data);d.close();showToast("Doctor saved.",{kind:"success"});if(!doctor)password(result.temp_password);await load();}catch(err){showFieldErrors(f,err,msg);}});}
+/** Shows single-view temporary credentials with a copy action. */
+function password(value){const d=document.createElement("dialog");d.className="confirm-dialog";const f=document.createElement("form");f.method="dialog";f.className="confirm-dialog__form";const h=document.createElement("h2");h.textContent="Temporary password";const p=document.createElement("p");p.textContent="Copy this password now. It will not be shown again.";const code=document.createElement("code");code.textContent=value;f.append(h,p,code,button("Copy password","btn btn-secondary",async()=>{await navigator.clipboard?.writeText(value);showToast("Temporary password copied.",{kind:"success"});}),Object.assign(document.createElement("button"),{className:"btn btn-primary",textContent:"Close"}));d.append(f);document.body.append(d);d.showModal();d.addEventListener("close",()=>d.remove(),{once:true});}
+/** Confirms account-state changes. */
+async function toggle(d){if(!await confirmDialog({title:d.disabled?"Reactivate doctor?":"Deactivate doctor?",message:d.disabled?"This doctor can sign in again.":"This doctor cannot sign in until reactivated."}))return;try{d.disabled?await reactivateAdminDoctor(d.id):await deactivateAdminDoctor(d.id);await load();}catch(e){showToast(e.message,{kind:"error"});}}
+/** Assigns or removes this department doctor's courses through existing course updates. */
+function assign(doctor){const d=document.createElement("dialog");d.className="confirm-dialog";const f=document.createElement("form");f.className="confirm-dialog__form";const h=document.createElement("h2");h.textContent=`Assign courses: ${doctor.full_name}`;courses.forEach(c=>{const label=document.createElement("label");const check=document.createElement("input");check.type="checkbox";check.value=c.id;check.checked=c.doctor_id===doctor.id;label.append(check,document.createTextNode(` ${c.code} — ${c.title}`));f.append(label);});const save=Object.assign(document.createElement("button"),{className:"btn btn-primary",textContent:"Save",type:"submit"});f.append(h,save);d.append(f);document.body.append(d);d.showModal();d.addEventListener("close",()=>d.remove(),{once:true});f.addEventListener("submit",async e=>{e.preventDefault();try{for(const c of courses){const checked=f.querySelector(`input[value="${c.id}"]`).checked;if(checked&&c.doctor_id!==doctor.id)await updateAdminCourse(c.id,{doctor_id:doctor.id});}d.close();await load();}catch(err){showToast(err.message,{kind:"error"});}});}
+start();

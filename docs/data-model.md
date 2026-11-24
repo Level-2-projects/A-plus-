@@ -183,6 +183,7 @@ Institutional policies and gamification point rules configured at Dean level.
 * `points_attendance_present` INT NOT NULL DEFAULT 10
 * `updated_at` DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME()
 * `updated_by` VARCHAR(36) NULL REFERENCES `users(id)`
+* **Validation:** `absence_warning_threshold` is 1–20; `rating_cooldown_days` is 1–365; every points value is 0–1000. The mock reads these persisted values when it creates new absence warnings, checks rating cooldowns, and awards new submission, quiz, or attendance points.
 
 ### 2.15 `broadcasts`
 Broadcast announcement log sent across college or department audiences.
@@ -203,6 +204,7 @@ Broadcast announcement log sent across college or department audiences.
 - Every attendance record must reference a student enrolled in the session's course; enforce UNIQUE(`session_id`, `student_id`).
 - On the first attendance record that reaches `ABSENCE_WARNING_THRESHOLD` for a student/course, create one unread system warning. Later absences must not create duplicates for that pair.
 - Every doctor-created assignment, lecture, quiz, attendance session, message, and bonus award must be scoped to that doctor's courses and enrolled students.
+- Dean analytics and report responses are derived read models, not stored tables. They aggregate database records by department/course and period; they never expose a student ID, student name, student email, or AI score.
 - A student's assignment submission and quiz attempt are each unique per student/resource pair. Keep the AI opinion score private to doctor responses; student responses must never include AI-score fields.
 - Message recipients and todo owners are private to each student. A todo's optional `course_code` must refer to a course in which its owner is enrolled.
 - Ratings must reference an existing lecture or doctor and a course the student is enrolled in. Keep `student_id` in storage for cooldown enforcement, but do not expose it in doctor rating aggregates.

@@ -384,18 +384,147 @@ node dev/node-test-runner.mjs
 
 Or open `http://localhost:3000/dev/test-runner.html` for the in-browser runner.
 
-## Full demo script
+## Full demo script (6 to 8 minutes walkthrough across all four roles)
 
-Use two tabs on the same origin. For a clean run, remove only `aplus_mock_db` from that origin's Local Storage before opening the tabs. Leave **Remember me** unchecked in both tabs so each tab can keep its own role session.
+This comprehensive demo script demonstrates the full four-role workflow across multiple tabs (keep **Remember me** unchecked in all tabs so each tab maintains its own role session in `sessionStorage`).
 
-1. In Tab 1, sign in as `doctor@aplus.edu` / `Doctor123`.
-2. Select **Assignments** in the sidebar. Create an SE301 assignment with a title, description, future due date, and maximum grade. Open its submissions link and leave the tab there.
-3. In Tab 2, sign in as `student@aplus.edu` / `Student123`. Select **Assignments**, open the new assignment, enter submission text, select **Submit assignment**, and confirm. Verify the AI feedback appears and the student view contains no AI score.
-4. Return to Tab 1. Open the assignment submission, review the student's text and doctor-only AI score, enter a valid final grade and optional comment, then save. Verify the pending-grading badge decreases.
-5. Return to Tab 2 and reopen the assignment. Verify the final grade and doctor's comment.
-6. In Tab 1, select **Messages** and send a notice to the student. In Tab 2, verify the unread badge updates without reloading; open the message and verify it becomes read.
+### Preparation
+1. Start the local server if not already running: `python3 -m http.server 3000` (or `5500`).
+2. Open a browser window to `http://localhost:3000/index.html`.
+3. Clear `aplus_mock_db` from `localStorage` if you want to start from the pure clean seed (via browser DevTools or `dev/mock-playground.html`).
 
-See [`docs/manual-test-guide.md`](./docs/manual-test-guide.md) for all page checks, responsive/accessibility checks, and the native cross-tab storage test.
+---
+
+### Step 1: Dean provisions a Department & Administrator (Tab 1: Dean)
+1. **Sign in** as Dean: `dean@aplus.edu` / `Dean123`.
+2. Notice the **College Overview** dashboard: metrics, department comparison bars, needs-attention list, and top students per department.
+3. In the sidebar, select **Departments** (`super-admin/departments.html`).
+4. Click **Create Department**:
+   - Name: `Artificial Intelligence`
+   - Code: `AI`
+   - Admin Full Name: `Dr. Sami Mansour`
+   - Admin Email: `sami@aplus.edu`
+   - Admin University ID: `ADM2026001`
+5. Click **Create Department**.
+6. A dialog appears showing the generated **Temporary Password** exactly once with a **Copy password** button. Copy or note down the temporary password, then click Close.
+
+---
+
+### Step 2: Department Admin sets up Doctor, Course & Student (Tab 2: Admin)
+1. Open a **second tab** (or separate window) on the same origin and go to `/index.html`.
+2. **Sign in** as the newly created department admin: `sami@aplus.edu` with the temporary password from Step 1.
+3. In the admin dashboard, select **Doctors** (`department-admin/doctors.html`).
+4. Click **Add Doctor**:
+   - Full Name: `Dr. Tarek Fayed`
+   - Email: `tarek.fayed@aplus.edu`
+   - University ID: `DR2026001`
+   - Title: `Associate Professor`
+5. Click Save. Copy the temporary password shown.
+6. In the sidebar, select **Courses** (`department-admin/courses.html`).
+7. Click **Create Course**:
+   - Code: `AI401`
+   - Title: `Deep Learning & Neural Networks`
+   - Doctor: Select `Dr. Tarek Fayed`
+   - Credit Hours: `3`
+   - Total Lectures: `12`
+   - Schedule: `Mon & Wed 10:00–11:30`
+   - Room: `Hall 4C`
+8. Click Save.
+9. In the sidebar, select **Students** (`department-admin/students.html`).
+10. Click **Add Student**:
+    - Full Name: `Ziad Amr`
+    - Email: `ziad.amr@aplus.edu`
+    - University ID: `AI2026001`
+    - Academic Level: `3`
+11. Click Save. Note the temporary password.
+12. On Ziad Amr's row in the table, click **Enrollments**, select `AI401 – Deep Learning & Neural Networks`, and enroll the student.
+
+---
+
+### Step 3: Doctor creates an Assignment (Tab 3: Doctor)
+1. Open a **third tab** (or re-use Tab 2 after sign-out, or use Incognito):
+2. **Sign in** as `tarek.fayed@aplus.edu` with Dr. Tarek's temporary password.
+3. Select **Assignments** (`doctor/assignments.html`).
+4. Click **Create Assignment**:
+   - Course: `AI401 – Deep Learning & Neural Networks`
+   - Title: `Assignment 1: Backpropagation from Scratch`
+   - Description: `Implement forward and backward passes for a 3-layer MLP in pure NumPy without PyTorch/TensorFlow.`
+   - Due Date: Set to a future date (e.g., `2027-01-15T23:59`)
+   - Max Grade: `20`
+5. Click Save. The assignment is now published to enrolled students.
+
+---
+
+### Step 4: Student submits work & gets instant AI feedback (Tab 4: Student)
+1. Open a **new tab**:
+2. **Sign in** as the student: `ziad.amr@aplus.edu` with Ziad's temporary password.
+3. Select **Assignments** (`student/assignments.html`). Notice `Assignment 1: Backpropagation from Scratch` appears under Pending.
+4. Click **View & Submit**.
+5. In the submission field, enter: `Full NumPy MLP implementation with matrix gradient derivations and validation loss curve attached.`
+6. Click **Submit Assignment** and confirm the one-time submission dialog.
+7. Observe:
+   - Instant automated AI feedback appears immediately (e.g. detailed architectural analysis).
+   - **Crucial verification**: There is **NO AI score** anywhere on the student screen (zero score leaks).
+   - Status changes to `Submitted (Pending Doctor Review)`.
+
+---
+
+### Step 5: Doctor inspects AI score & grades the submission (Tab 3: Doctor)
+1. Return to the **Doctor tab** (`doctor/assignments.html`).
+2. Refresh or open the assignment detail:
+   - The pending submissions count shows `1`.
+   - Open the submission from `Ziad Amr`.
+   - The Doctor-exclusive grading panel displays the internal **AI opinion score** (e.g. `8.8 / 10`) and confidence breakdown.
+3. Set the final grade:
+   - Final Grade: `18` (out of 20)
+   - Doctor Feedback: `Great implementation. Clean vectorization and solid mathematical derivations.`
+4. Click **Save Grade**.
+
+---
+
+### Step 6: Dean updates Absence Policy (Tab 1: Dean)
+1. Return to the **Dean tab** (`super-admin/settings.html`).
+2. Notice the current settings:
+   - Absence Warning Threshold: `2` (or current default)
+3. Change **Absence Warning Threshold** to `1`.
+4. Click **Save Settings**.
+5. Observe the success toast and the "Last updated" timestamp updating immediately.
+
+---
+
+### Step 7: Attendance triggers instant Absence Warning (Tab 3: Doctor)
+1. In the **Doctor tab**, select **Attendance** (`doctor/attendance.html`).
+2. Select course `AI401`, set Date to today, and mark `Ziad Amr` as **Absent**.
+3. Submit the attendance sheet.
+4. Switch to the **Student tab** (Ziad Amr):
+   - Notice the **Inbox badge** in the student sidebar turns gold with an unread badge without refreshing!
+   - Open **Inbox** (`student/inbox.html`).
+   - An **Absence Warning** message from the system is present: `Absence Warning: AI401` noting that absences have reached the threshold of `1`.
+   - Click the message: unread dot clears, badge decrements, and full warning body is displayed.
+
+---
+
+### Step 8: Dean broadcasts to the whole college & exports Reports (Tab 1: Dean)
+1. Return to the **Dean tab**.
+2. Select **Announcements** (`super-admin/announcements.html`).
+3. Select Audience: `Whole College`.
+   - Subject: `Midterm Academic Review & Campus Seminar`
+   - Body: `All departments are invited to the AI Symposium this Thursday in the Central Auditorium.`
+   - Type: `Notice`
+4. Click **Send Announcement**.
+   - Notice the toast: `Announcement sent to X recipients.`
+   - The view switches to the **Sent** tab showing the broadcast record with recipient counts.
+5. In the Dean sidebar, select **Reports** (`super-admin/reports.html`):
+   - Switch between **Attendance**, **Submissions & Grades**, **Doctor Ratings**, and **At-Risk Students** tabs.
+   - Select the period filter `All Time` or `This Month`.
+   - Filter by department `Computer Science` or `Information Systems`.
+   - Click **Export CSV** on any tab.
+   - A `.csv` file with a dated filename (e.g. `attendance_report_2026-11-24.csv`) downloads instantly to your machine.
+   - Open the file in Excel / Numbers: verify clean column headers, proper comma escaping, and UTF-8 BOM encoding.
+
+---
+
+See [`docs/manual-test-guide.md`](./docs/manual-test-guide.md) for detailed per-page test checks, accessibility verification, and keyboard shortcuts.
 
 ---
 

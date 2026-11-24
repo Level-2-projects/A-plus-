@@ -315,6 +315,15 @@ export async function getDoctorMessages() {
   return request("/doctor/messages");
 }
 
+/** Retrieves received doctor messages, newest first. */
+export async function getDoctorInbox() { return request("/doctor/inbox"); }
+
+/** Retrieves the unread received-message count for the doctor sidebar. */
+export async function getDoctorUnreadCount() { return request("/doctor/inbox/unread-count"); }
+
+/** Marks a received doctor message as read. */
+export async function markDoctorMessageRead(id) { return request(`/doctor/inbox/${encodeURIComponent(id)}/read`, { method: "PUT" }); }
+
 /**
  * Sends a message, notice, or absence warning to students (lands in their student inbox).
  *

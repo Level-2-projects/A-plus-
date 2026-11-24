@@ -13,6 +13,9 @@ import {
   doctorOwnsCourse, studentsInCourses, checkAbsenceWarning,
 } from "../mock-runtime.js";
 
+/** Allowed academic levels for department-admin student management. */
+const STUDENT_LEVELS = ["1", "2", "3", "4", "5"];
+
 export function adminOwnsDept(db, adminUser) {
   if (!adminUser.department_id) return null;
   return db.departments.find((d) => d.id === adminUser.department_id) || null;
@@ -113,6 +116,7 @@ export function handleAdminGetStudents(db, user, query) {
     full_name: s.full_name,
     email: s.email,
     university_id: s.university_id,
+    level: s.level ?? null,
     disabled: Boolean(s.disabled),
     enrolled_courses: db.enrollments
       .filter((e) => e.student_id === s.id)
@@ -131,12 +135,16 @@ export function handleAdminCreateStudent(db, user, body) {
   const fullName     = body?.full_name?.trim();
   const email        = body?.email?.trim().toLowerCase();
   const universityId = body?.university_id?.trim();
+  const rawLevel     = body?.level !== undefined && body?.level !== null ? String(body.level).trim() : "1";
 
   const errors = {};
   if (!fullName) errors.full_name = "Full name is required.";
   if (!email) errors.email = "Email is required.";
   if (!universityId) errors.university_id = "University ID is required.";
+  if (!STUDENT_LEVELS.includes(rawLevel)) errors.level = "Level must be between 1 and 5.";
   if (Object.keys(errors).length > 0) return err422(errors);
+
+  const level = rawLevel;
 
   if (db.users.some((u) => u.email.toLowerCase() === email)) {
     return err409("Email already registered in the system.");
@@ -155,6 +163,7 @@ export function handleAdminCreateStudent(db, user, body) {
     department_id: dept.id,
     department_name: dept.name,
     university_id: universityId,
+    level,
     disabled: false,
   };
 
@@ -167,6 +176,7 @@ export function handleAdminCreateStudent(db, user, body) {
       full_name: newStudent.full_name,
       email: newStudent.email,
       university_id: newStudent.university_id,
+      level: newStudent.level,
       disabled: false,
       enrolled_courses: [],
     },
@@ -200,6 +210,11 @@ export function handleAdminUpdateStudent(db, user, studentId, body) {
     }
     student.university_id = uId;
   }
+  if (body?.level !== undefined) {
+    const level = String(body.level).trim();
+    if (!STUDENT_LEVELS.includes(level)) return err422({ level: "Level must be between 1 and 5." });
+    student.level = level;
+  }
 
   mockDb.save(db);
   return ok({
@@ -207,6 +222,7 @@ export function handleAdminUpdateStudent(db, user, studentId, body) {
     full_name: student.full_name,
     email: student.email,
     university_id: student.university_id,
+    level: student.level ?? null,
     disabled: Boolean(student.disabled),
     enrolled_courses: db.enrollments
       .filter((e) => e.student_id === student.id)

@@ -94,7 +94,7 @@ export function handleDoctorRecordAttendance(db, user, body) {
         student_id:   rec.student_id,
         month:        getCurrentMonth(),
         source:       "attendance",
-        points:       POINTS_ATTENDANCE_PRESENT,
+        points:       db.settings?.points_attendance_present ?? POINTS_ATTENDANCE_PRESENT,
         reference_id: session.id,
         description:  `Attendance: ${body.course_id} – ${body.date}`,
         created_at:   getNow().toISOString(),
@@ -168,7 +168,7 @@ export function handleDoctorStudents(db, user, searchParams) {
         course_id:            cid,
         attendance_rate:      rate,
         absences_count:       absences,
-        at_penalty_risk:      absences >= ABSENCE_WARNING_THRESHOLD,
+        at_penalty_risk:      absences >= (db.settings?.absence_warning_threshold ?? ABSENCE_WARNING_THRESHOLD),
         current_grade:        avgGrade,
         bonus_points_granted: bonus,
         current_month_points: currentMonthPoints,
@@ -219,6 +219,25 @@ export function handleDoctorMessages(db, user) {
     .filter((m) => m.sender_id === user.id)
     .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
   return ok(msgs);
+}
+
+/** GET /doctor/inbox returns only messages addressed to this doctor, newest first. */
+export function handleDoctorInbox(db, user) {
+  return ok(db.messages.filter((message) => message.recipient_id === user.id).sort((a, b) => new Date(b.created_at) - new Date(a.created_at)));
+}
+
+/** GET /doctor/inbox/unread-count returns the doctor's unread delivery total. */
+export function handleDoctorUnreadCount(db, user) {
+  return ok({ unread_count: db.messages.filter((message) => message.recipient_id === user.id && !message.is_read).length });
+}
+
+/** PUT /doctor/inbox/:id/read marks only the authenticated doctor's message as read. */
+export function handleDoctorMarkRead(db, user, messageId) {
+  const message = db.messages.find((item) => item.id === messageId && item.recipient_id === user.id);
+  if (!message) return err404("Message");
+  message.is_read = true;
+  mockDb.save(db);
+  return ok({ message: "Marked as read." });
 }
 
 /** POST /doctor/messages */
