@@ -374,6 +374,61 @@ SUMMARY: 30 passed, 0 failed
 ### Browser test status
 The browser test subagent was not run in this turn to preserve execution reliability. UI was **not browser-tested** with automated browser automation in this turn. Manual verification instructions are in `docs/manual-test-guide.md`.
 
+## Verification notes (2026-11-24 — API Contract Completion & Sync Tooling)
+
+### Contract & Tooling Verified Facts
+- **Real Route Count**: Exactly **86 routes** registered in `js/mock/routes/*.js` (`POST /auth/login` + 21 Student + 25 Doctor + 25 Dept Admin + 14 Dean).
+- **docs/api-contract.md**: Fully updated with every one of the 86 routes individually detailed with method, path, allowed roles, query/path parameters, request body schemas, response schemas, error responses (401, 403, 404, 409, 422, 429), and business rules derived directly from handlers and test scenarios. Added sections for Token Specification (mock vs production JWT claims), Common Error Response formats, Dynamic Runtime Settings, and n8n Integration Points.
+- **Contract Sync Tool (`dev/check-contract.mjs`)**: Added contract verification script that inspects `js/mock/routes/*.js` and parses `docs/api-contract.md`. Exits 0 on symmetry and non-zero on any missing or extra route.
+- **README.md**: Added instructions for running `node dev/check-contract.mjs`.
+
+### dev/check-contract.mjs output
+
+```
+Router routes count:     86
+Contract detailed count:  86
+Contract table count:     86
+
+[SUCCESS] All routes are completely and symmetrically documented in docs/api-contract.md!
+```
+
+### node dev/node-test-runner.mjs (2026-11-24)
+
+```
+PASS  sc-1-auth-scope
+PASS  sc-2-assignment-creation-visibility
+PASS  sc-3-student-submission-ai-feedback
+PASS  sc-4-doctor-grading-flow
+PASS  sc-5-quiz-lifecycle
+PASS  sc-2b-cross-doctor-isolation
+PASS  sc-2c-student-ai-score-leak-check
+PASS  sc-6-attendance-absence-warning
+PASS  sc-7-doctor-messages-inbox
+PASS  sc-8-points-monthly-ledger
+PASS  sc-9-ratings-anonymity-cooldown
+PASS  sc-10-todo-ownership-crud
+PASS  sc-11-dashboard-aggregates
+PASS  sc-12-persistence
+PASS  sc-13-cross-tab
+PASS  sc-14-admin-scope-students
+PASS  sc-15-admin-course-enrollment
+PASS  sc-16-dean-departments-overview
+PASS  sc-20-admin-metrics-attendance-points
+PASS  sc-21-admin-messages-inbox
+PASS  sc-22-admin-settings-authorization
+PASS  sc-23-admin-list-scope-leak-scan
+PASS  sc-24-admin-student-level
+PASS  sc-19-shell-navigation-integrity
+PASS  sc-25-dean-analytics-reports
+PASS  sc-26-dean-settings-take-effect
+PASS  sc-27-dean-response-privacy-scan
+PASS  sc-28-admin-doctor-inbox-delivery
+PASS  sc-29-dean-messaging-and-inbox
+PASS  sc-30-four-role-end-to-end
+
+SUMMARY: 30 passed, 0 failed
+```
+
 ## Next
 
 ## Verification notes (2026-11-22 — role shells)

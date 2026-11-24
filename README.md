@@ -384,6 +384,13 @@ node dev/node-test-runner.mjs
 
 Or open `http://localhost:3000/dev/test-runner.html` for the in-browser runner.
 
+### Check API contract synchronization
+
+Verify that all 86 registered mock router endpoints match the specification in `docs/api-contract.md`:
+```bash
+node dev/check-contract.mjs
+```
+
 ## Full demo script (6 to 8 minutes walkthrough across all four roles)
 
 This comprehensive demo script demonstrates the full four-role workflow across multiple tabs (keep **Remember me** unchecked in all tabs so each tab maintains its own role session in `sessionStorage`).
