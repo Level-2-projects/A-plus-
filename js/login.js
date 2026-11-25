@@ -3,7 +3,7 @@
  * Flow: validate input → call api.login → save session → redirect by role.
  */
 import { login, saveSession, ApiError } from "./api.js";
-import { ROLE_ROUTES, STORAGE_KEYS } from "./config.js";
+import { BRANDING, ROLE_ROUTES, STORAGE_KEYS } from "./config.js";
 
 /* ---------- DOM references ---------- */
 const form        = document.getElementById("login-form");
@@ -13,6 +13,17 @@ const remember    = document.getElementById("remember");
 const submitBtn   = document.getElementById("submit-btn");
 const toggleBtn   = document.getElementById("toggle-password");
 const formError   = document.getElementById("form-error");
+
+/** Applies the centralized brand logo path to the sign-in page. */
+function mountBrandLogo() {
+  const logo = document.querySelector("[data-brand-logo]");
+  if (logo) {
+    logo.src = BRANDING.logoPath;
+    logo.alt = BRANDING.logoAlt;
+  }
+}
+
+mountBrandLogo();
 
 /* ---------- Restore Remember Me on page load ---------- */
 // لو المستخدم كان محدد Remember me بنرجع الـ identifier والـ password والـ checkbox متعلم تلقائياً

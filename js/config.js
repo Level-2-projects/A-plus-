@@ -60,7 +60,7 @@ export const LOGIN_ROUTE = "/index.html";
 
 /** Centralized brand configuration for logo presentation across the application shell. */
 export const BRANDING = {
-  logoPath: "../logo_clean.png",
+  logoPath: "/images/logo.png",
   logoHeight: 44,
   logoAlt: "A Plus",
   wordmark: "A Plus",

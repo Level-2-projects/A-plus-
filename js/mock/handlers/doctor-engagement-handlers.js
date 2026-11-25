@@ -13,6 +13,7 @@ import {
   doctorOwnsCourse, studentsInCourses, checkAbsenceWarning,
 } from "../mock-runtime.js";
 
+/** GET /doctor/attendance returns sessions belonging only to the authenticated doctor. */
 export function handleDoctorAttendance(db, user) {
   const myCourseIds = doctorCourseIds(db, user.id);
   const sessions = db.attendance_sessions

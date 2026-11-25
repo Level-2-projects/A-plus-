@@ -32,6 +32,7 @@ function section(title) {
   return wrap;
 }
 
+/** Loads the requested department detail and renders a recoverable error when absent. */
 async function loadPage() {
   content.innerHTML = "";
   content.append(createSkeleton({ lines: 4, label: STRINGS.shared.loading }));

@@ -51,6 +51,18 @@ Mock logic stages 0–4 and all Student/Doctor UI stages A–E are implemented. 
 | Dean | Settings | shell | `super-admin/settings.html`, `js/dean/settings.js`; layout wired; content empty. |
 | Dean | Profile | shell + API | `super-admin/profile.html`, `js/dean/profile.js`; calls `GET /dean/profile` and renders `createProfileCard`. |
 
+## Project Cleanup & Reorganization (2026-11-24)
+
+- **Root directory cleaned:** Moved `login.css` to `css/login.css` and `login.js` to `js/login.js`. Removed redundant root shims `api.js` and `config.js` after verifying all modules import directly from `js/`.
+- **Assets consolidated and optimized in `images/`:**
+  - `images/logo.png` (optimized PNG, 170.6 KB).
+  - `images/campus.jpg` (optimized JPG, 1.39 MB).
+  - Deleted 6 stray, duplicated, or unreferenced root images (`campus.jpg`, `campus_clean.jpeg`, `campus_final.jpg`, `logo.png`, `logo_clean.png`, `logo_clean_green_backup.png`), reducing total image footprint from 5.73 MB to 1.50 MB (~74% reduction).
+- **Static asset integrity validator:** `dev/check-assets.mjs` verifies local HTML, CSS, and JS asset references; it is documented in `README.md` and uses the consolidated `images/` paths.
+- **Gitignore updated:** Ensured `.DS_Store`, `*.bak`, `node_modules/`, `.venv/`, `__pycache__/`, `*.db`, `.env`, and `.pytest_cache/` are ignored.
+- **All 30 automated scenarios pass** and all 86 API contract routes match.
+- **Cleanup verification (2026-11-25):** The root now contains only the documented application folders plus `index.html`, `README.md`, and `.gitignore`. Product assets are `images/logo.png` (174,702 bytes) and `images/campus.jpg` (1,431,046 bytes). `BRANDING.logoPath` is the sole logo path and `css/login.css` is the sole login-photo reference. The unused legacy `js/mock/student-mock-data.js` store was removed; no product-source `console.log` or commented-out executable code was found. Header/function-comment scans found and corrected the named-function omissions in contract validation, shell helpers, analytics handlers, and dean pages.
+
 ### Shared components and stage notes
 
 - Shared modules: `toast.js`, `dialog.js`, `tabs.js`, `data-table.js`, `empty-state.js`, `error-state.js`, `skeleton.js`, `form-field.js`, `status-dot.js`, `date-format.js`, `page-state.js`, `metric-card.js`, `leaderboard.js`, `progress-bar.js`, and `profile-card.js`; existing progress rings remain in use.
@@ -66,8 +78,7 @@ Mock logic stages 0–4 and all Student/Doctor UI stages A–E are implemented. 
 
 | Check | Result |
 |---|---|
-| Imports of legacy `js/mock/student-mock-data.js` or `js/mock/doctor-mock-data.js` | None. The student mock data file is preserved as an unused legacy artifact from GitHub history; no doctor mock data file is present. |
-| Legacy mock endpoint coverage | All student operations exposed by the legacy `mockDataStore` are now represented by current `/student/*` mock routes. The separate legacy doctor mock file was not present in the available old project snapshot, so a complete old-doctor endpoint comparison cannot be confirmed. Every current doctor API client operation has a corresponding route in `js/mock/mock-server.js`. |
+| Legacy mock endpoint coverage | The unused legacy student mock store was removed in cleanup after confirming no imports; current `/student/*` mock routes provide the active endpoint coverage. No legacy doctor mock file is present. |
 | `logout()` / `clearSession()` preserving `aplus_mock_db` | Verified: both clear auth keys but preserve the mock database. |
 | Login dispatch | Verified: `js/api.js` posts `/auth/login` through `mockServerHandle()` when `USE_MOCK` is true. |
 | Seed login results | All nine enabled accounts authenticate successfully. `disabled@aplus.edu` / `Disabled123` returns 403 as designed; it is a disabled test account and cannot log in. Full account list follows below. |
@@ -181,7 +192,7 @@ Mock logic stages 0–4 and all Student/Doctor UI stages A–E are implemented. 
 
 ## Verification notes
 
-- No stale imports to `js/mock/student-mock-data.js` or `js/mock/doctor-mock-data.js` were found in this project. The preserved legacy student mock store has matching current student routes; an old doctor mock file was not available for a direct legacy comparison.
+- The unreferenced legacy `js/mock/student-mock-data.js` store was removed during cleanup; no legacy doctor mock file is present.
 - All relative JavaScript imports and local HTML script paths resolve.
 - Historical 15-scenario runner notes are superseded by the verified 19-scenario output below. The browser runner has not been rerun as part of the current status update.
 - Real browser cross-tab check: Inbox badge changed from 3 to 4 after a doctor tab sent a message; no reload was used.
