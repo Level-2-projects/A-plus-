@@ -13,6 +13,7 @@ import {
   doctorOwnsCourse, studentsInCourses, checkAbsenceWarning,
 } from "../mock-runtime.js";
 
+/** GET /doctor/dashboard/summary aggregates the authenticated doctor's workload. */
 export function handleDoctorDashboard(db, user) {
   const myCourseIds   = doctorCourseIds(db, user.id);
   const myAssignments = db.assignments.filter((a) => myCourseIds.includes(a.course_id));
@@ -88,6 +89,7 @@ export function handleDoctorCourse(db, user, courseId) {
   return ok(formatCourseForDoctor(db, course, true));
 }
 
+/** Formats one owned course for doctor-facing responses. */
 export function formatCourseForDoctor(db, course, includeLectures = false) {
   const enrolled      = db.enrollments.filter((e) => e.course_id === course.id).length;
   const lecturesDone  = db.attendance_sessions.filter((s) => s.course_id === course.id).length;
@@ -212,6 +214,7 @@ export function handleDoctorPendingCount(db, user) {
   return ok({ pending_count: count });
 }
 
+/** Formats one owned assignment and its doctor-only grading details. */
 export function formatAssignmentForDoctor(db, asg) {
   const subs    = db.submissions.filter((s) => s.assignment_id === asg.id);
   const pending = subs.filter((s) => s.doctor_final_grade === null).length;
@@ -351,6 +354,7 @@ export function handleDoctorUpdateQuiz(db, user, quizId, body) {
   return ok(formatQuizForDoctor(db, quiz, getNow()));
 }
 
+/** Formats one owned quiz with its current availability status. */
 export function formatQuizForDoctor(db, quiz, now) {
   const course    = db.courses.find((c) => c.id === quiz.course_id);
   const attempts  = db.quiz_attempts.filter((a) => a.quiz_id === quiz.id);

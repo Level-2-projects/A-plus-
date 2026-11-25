@@ -13,6 +13,7 @@ import {
   doctorOwnsCourse, studentsInCourses, checkAbsenceWarning,
 } from "../mock-runtime.js";
 
+/** GET /student/attendance returns attendance summaries scoped to the student. */
 export function handleStudentAttendance(db, user) {
   const threshold = db.settings?.absence_warning_threshold ?? ABSENCE_WARNING_THRESHOLD;
   const enrolledIds = studentCourseIds(db, user.id);

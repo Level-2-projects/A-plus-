@@ -27,6 +27,7 @@ export function handleDeanReports(db, _user, searchParams) {
   return ok(buildDeanReports(db, resolvePeriod(searchParams.get("period"))));
 }
 
+/** GET /dean/overview/summary returns college-wide aggregate metrics. */
 export function handleDeanOverview(db, _user) {
   const totalStudents = db.users.filter((u) => u.role === "student" && !u.disabled).length;
   const totalDoctors  = db.users.filter((u) => u.role === "doctor" && !u.disabled).length;

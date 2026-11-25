@@ -220,10 +220,12 @@ function renderSentTab() {
 
 // ─── Load & render ────────────────────────────────────────────────────────────
 
+/** Refreshes the dean's sent-broadcast records after a successful action. */
 async function reloadSent() {
   sentList = await getDeanMessages();
 }
 
+/** Renders the currently selected dean announcement workspace tab. */
 function renderPage() {
   content.innerHTML = "";
 
@@ -252,6 +254,7 @@ function renderPage() {
   }
 }
 
+/** Loads department choices and sent broadcasts with a retryable error state. */
 async function loadPage() {
   content.innerHTML = "";
   content.append(createSkeleton({ lines: 3, label: STRINGS.shared.loading }));

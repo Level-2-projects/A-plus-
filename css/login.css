@@ -3,8 +3,8 @@
    Sections: 1 Tokens · 2 Base · 3 Layout · 4 Brand/Text · 5 Form · 6 Hero · 7 Responsive
    ========================================================================== */
 
-/* 1. DESIGN TOKENS – imported from shared css/tokens.css */
-@import "./css/tokens.css";
+/* 1. DESIGN TOKENS – imported from shared tokens.css */
+@import "./tokens.css";
 
 /* 2. BASE */
 *, *::before, *::after { box-sizing: border-box; }
@@ -161,7 +161,7 @@ input[aria-invalid="true"] { border-color: var(--error); }   /* set from JS on v
     linear-gradient(to right, var(--bg) 0%, rgba(245, 249, 252, 0.7) 4%, rgba(245, 249, 252, 0) 16%),
     /* تدرج خفيف فوق للكلام */
     linear-gradient(to bottom, rgba(0, 0, 0, 0.45) 0%, rgba(0, 0, 0, 0) 30%),
-    url("campus_final.jpg");
+    url("../images/campus.jpg");
   background-position: center 20%;
   background-size: cover;
   background-repeat: no-repeat;

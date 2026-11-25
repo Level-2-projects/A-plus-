@@ -49,6 +49,7 @@ function animateCount(element) {
 
   let startTime = null;
 
+  /** Advances one animation frame toward the metric's final value. */
   function step(currentTime) {
     if (!startTime) startTime = currentTime;
     const elapsed = currentTime - startTime;

@@ -180,6 +180,7 @@ function renderAttendanceTab(data, deptId) {
   });
 }
 
+/** Renders CSV-ready submission and grade aggregates for the selected department. */
 function renderSubmissionsTab(data, deptId) {
   const rows = filterByDept(data.submissions_and_grades, deptId);
   if (!rows.length) return createEmptyState(S.noData);
@@ -196,6 +197,7 @@ function renderSubmissionsTab(data, deptId) {
   });
 }
 
+/** Renders anonymous doctor-rating aggregates and comments for the selected department. */
 function renderRatingsTab(data, deptId) {
   const rows = filterByDept(data.doctor_ratings, deptId);
   if (!rows.length) return createEmptyState(S.noData);
@@ -240,6 +242,7 @@ function renderRatingsTab(data, deptId) {
   return wrap;
 }
 
+/** Renders anonymous at-risk attendance rows for the selected department. */
 function renderAtRiskTab(data, deptId) {
   const rows = filterByDept(data.at_risk_students, deptId);
   if (!rows.length) return createEmptyState(S.noData);

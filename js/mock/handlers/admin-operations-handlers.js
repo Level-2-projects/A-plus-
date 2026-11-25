@@ -14,6 +14,7 @@ import {
 } from "../mock-runtime.js";
 import { adminOwnsDept } from "./admin-account-handlers.js";
 
+/** GET /admin/courses returns only courses owned by the authenticated admin's department. */
 export function handleAdminGetCourses(db, user) {
   const dept = adminOwnsDept(db, user);
   if (!dept) return err403();

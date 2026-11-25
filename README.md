@@ -11,14 +11,13 @@ This repository contains the complete **Student and Doctor Area Shells** built i
 ```
 A plussss/
 ├── index.html                   # Sign-in portal entry page
-├── login.css                    # Login page styling (imports css/tokens.css)
-├── login.js                     # Login page UI controller
-├── config.js                    # Root re-export of js/config.js
-├── api.js                       # Root re-export of js/api.js
-├── logo_clean.png               # Official transparent brand logo (44px height in header)
-├── campus_final.jpg             # Campus hero background for sign-in
+├── .gitignore                   # Local-system and dependency exclusions
+├── images/
+│   ├── logo.png                 # Official brand logo (transparent PNG, optimized)
+│   └── campus.jpg               # Campus hero photo for sign-in (optimized JPG)
 │
 ├── css/
+│   ├── login.css                # Login page styling (imports tokens.css)
 │   ├── tokens.css               # Single source of truth: Google Fonts, brand colors, motion tokens, type scale
 │   ├── motion.css               # Motion system: page enter, .stagger cascade, card lift physics, reduced-motion
 │   ├── base.css                 # Global CSS reset, Plus Jakarta Sans headings, Inter body, tabular numerals
@@ -26,6 +25,7 @@ A plussss/
 │   └── components.css           # Components: .card, .card--hero, .card--interactive, .btn, .status, .medal, .progress-bar, .progress-ring, .skeleton
 │
 ├── js/
+│   ├── login.js                 # Login page UI controller
 │   ├── config.js                # Core configuration (API_BASE_URL, USE_MOCK, STORAGE_KEYS, ROLE_ROUTES, BRANDING, ROLE_NAV)
 │   ├── api.js                   # Authentication & session storage helpers (the only file touching Web Storage)
 │   ├── config/
@@ -158,7 +158,9 @@ A plussss/
 │   ├── test-runner.html         # In-browser mock scenario runner
 │   ├── mock-playground.html     # Interactive API and database playground
 │   ├── node-test-runner.mjs     # Node scenario runner
-│   └── node-test-shim.js        # Development-only storage/event shim
+│   ├── node-test-shim.js        # Development-only storage/event shim
+│   ├── check-contract.mjs       # REST API contract vs mock router sync validator
+│   └── check-assets.mjs         # Static asset existence and link integrity validator
 │
 └── docs/
     ├── api-contract.md          # REST API specifications and complete route inventory
@@ -389,6 +391,13 @@ Or open `http://localhost:3000/dev/test-runner.html` for the in-browser runner.
 Verify that all 86 registered mock router endpoints match the specification in `docs/api-contract.md`:
 ```bash
 node dev/check-contract.mjs
+```
+
+### Check static assets
+
+Verify that every local HTML, CSS, and JavaScript asset reference resolves:
+```bash
+node dev/check-assets.mjs
 ```
 
 ## Full demo script (6 to 8 minutes walkthrough across all four roles)

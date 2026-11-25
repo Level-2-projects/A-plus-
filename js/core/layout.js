@@ -407,11 +407,13 @@ function attachSidebarHandlers() {
   const overlay = document.getElementById("sidebar-overlay");
   const sidebar = document.getElementById("app-sidebar");
 
+  /** Opens the small-screen sidebar and updates its accessible state. */
   function openSidebar() {
     document.body.classList.add("sidebar-open");
     hamburgerBtn?.setAttribute("aria-expanded", "true");
   }
 
+  /** Closes the small-screen sidebar and updates its accessible state. */
   function closeSidebar() {
     document.body.classList.remove("sidebar-open");
     hamburgerBtn?.setAttribute("aria-expanded", "false");
@@ -445,6 +447,7 @@ function attachDropdownHandlers() {
   const userMenuBtn = document.getElementById("user-menu-btn");
   const userDropdown = document.getElementById("user-dropdown");
 
+  /** Closes both topbar dropdowns and resets their trigger state. */
   function closeAllDropdowns() {
     if (notifDropdown) notifDropdown.hidden = true;
     if (userDropdown) userDropdown.hidden = true;

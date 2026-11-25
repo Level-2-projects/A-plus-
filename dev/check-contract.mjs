@@ -27,6 +27,7 @@ const allRouteDefs = [
   ...studentRoutes.getRoutes(),
 ];
 
+/** Converts a registered route regular expression into its documented path form. */
 function normalizeRegexToPath(regex) {
   let s = regex.source;
   s = s.replace(/^\^/, "").replace(/\$$/, "");
