@@ -4,6 +4,13 @@
 
 Mock logic stages 0–4 and all Student/Doctor UI stages A–E are implemented. Department Admin batches 1–3 are wired. Dean B1 analytics, reports, and active settings are implemented. Dean B2 announcements, dean inbox, admin-to-dean messaging, doctor received inbox and unread indicators, and a 4-role end-to-end scenario are implemented and verified. The Node runner verifies 30 scenarios. Next: Department Admin and Dean remaining UI polish and demo seed.
 
+## Backend stage B1 (2026-11-25)
+
+- Added `backend/` FastAPI scaffold with environment-only configuration, SQLAlchemy 2 typed models, initial Alembic migration, JWT/bcrypt authentication, role dependency helpers, CORS, and dev/test reset/clock routes.
+- `POST /auth/login` was verified on port 8000 with the seeded student account. `js/config.js` already targets `http://localhost:8000`; it was not changed.
+- `backend/tests/test_auth.py` verified seeded login roles, disabled-account handling, invalid credentials, dev reset, and the initial auth seed counts.
+- The local Python environment could not download dependencies because outbound package-network access is unavailable; `backend/.venv` was created with system site packages for this verification. Exact pinned deployment dependencies remain in `backend/requirements.txt`.
+
 ## UI implementation status (2026-10-31)
 
 ### Page status
